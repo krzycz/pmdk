@@ -149,7 +149,7 @@ bucket_cache_destroy(struct bucket_cache *cache)
 static struct heap_layout *
 heap_get_layout(PMEMobjpool *pop)
 {
-	return (void *)pop + pop->heap_offset;
+	return (struct heap_layout *)((char *)pop + pop->heap_offset);
 }
 
 /*
@@ -183,7 +183,7 @@ get_zone_size_idx(uint32_t zone_id, int max_zone, size_t heap_size)
 	zone_raw_size -= sizeof (struct zone_header) +
 		(sizeof (struct chunk_header) * MAX_CHUNK);
 
-	return zone_raw_size / CHUNKSIZE;
+	return (uint32_t)(zone_raw_size / CHUNKSIZE);
 }
 
 /*
@@ -867,7 +867,7 @@ heap_get_block_data(PMEMobjpool *pop, struct memory_block m)
 	struct chunk_run *run = data;
 	ASSERT(run->block_size != 0);
 
-	return (void *)&run->data + (run->block_size * m.block_off);
+	return (char *)&run->data + (run->block_size * m.block_off);
 }
 
 #ifdef DEBUG
@@ -1043,7 +1043,7 @@ heap_coalesce(PMEMobjpool *pop,
 	for (int i = 0; i < n; ++i) {
 		if (blocks[i] == NULL)
 			continue;
-		b = b ? : blocks[i];
+		b = b ? b : blocks[i];
 		ret.size_idx += blocks[i] ? blocks[i]->size_idx : 0;
 	}
 

@@ -1033,7 +1033,7 @@ util_replica_create(struct pool_set *set, unsigned repidx, int flags,
 	rep->repsize -= (rep->nparts - 1) * hdrsize;
 
 	/* determine a hint address for mmap() */
-	void *addr = util_map_hint(rep->repsize); /* XXX - randomize */
+	char *addr = util_map_hint(rep->repsize); /* XXX - randomize */
 	if (addr == NULL) {
 		ERR("cannot find a contiguous region of given size");
 		return -1;
@@ -1074,14 +1074,14 @@ util_replica_create(struct pool_set *set, unsigned repidx, int flags,
 	set->zeroed &= rep->part[0].created;
 
 	size_t mapsize = rep->part[0].filesize & ~(Pagesize - 1);
-	addr = rep->part[0].addr + mapsize;
+	addr = (char *)rep->part[0].addr + mapsize;
 
 	/*
 	 * map the remaining parts of the usable pool space (4K-aligned)
 	 */
 	for (unsigned p = 1; p < rep->nparts; p++) {
 		/* map data part */
-		if (util_map_part(&rep->part[p], addr, 0, hdrsize,
+		if (util_map_part(&rep->part[p], addr, 0, (off_t)hdrsize,
 				flags | MAP_FIXED) != 0) {
 			LOG(2, "usable space mapping failed - part #%d", p);
 			goto err;
@@ -1214,7 +1214,7 @@ util_replica_open(struct pool_set *set, unsigned repidx, int flags,
 	rep->repsize -= (rep->nparts - 1) * hdrsize;
 
 	/* determine a hint address for mmap() */
-	void *addr = util_map_hint(rep->repsize); /* XXX - randomize */
+	char *addr = util_map_hint(rep->repsize); /* XXX - randomize */
 	if (addr == NULL) {
 		ERR("cannot find a contiguous region of given size");
 		return -1;
@@ -1240,7 +1240,7 @@ util_replica_open(struct pool_set *set, unsigned repidx, int flags,
 	}
 
 	size_t mapsize = rep->part[0].filesize & ~(Pagesize - 1);
-	addr = rep->part[0].addr + mapsize;
+	addr = (char *)rep->part[0].addr + mapsize;
 
 	/*
 	 * map the remaining parts of the usable pool space
@@ -1248,7 +1248,7 @@ util_replica_open(struct pool_set *set, unsigned repidx, int flags,
 	 */
 	for (unsigned p = 1; p < rep->nparts; p++) {
 		/* map data part */
-		if (util_map_part(&rep->part[p], addr, 0, hdrsize,
+		if (util_map_part(&rep->part[p], addr, 0, (off_t)hdrsize,
 				flags | MAP_FIXED) != 0) {
 			LOG(2, "usable space mapping failed - part #%d", p);
 			goto err;

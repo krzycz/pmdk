@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Intel Corporation
+ * Copyright (c) 2015, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,83 +31,9 @@
  */
 
 /*
- * libpmem.c -- pmem entry points for libpmem
+ * fake uuid.h
  */
 
-#include <stdio.h>
-#include <stdint.h>
+#include <objbase.h>
 
-#include "libpmem.h"
-
-#include "pmem.h"
-#include "util.h"
-#include "out.h"
-
-/*
- * libpmem_init -- load-time initialization for libpmem
- *
- * Called automatically by the run-time loader.
- */
-#ifndef WIN32
-__attribute__((constructor))
-static void
-#else
-void
-#endif
-libpmem_init(void)
-{
-	out_init(PMEM_LOG_PREFIX, PMEM_LOG_LEVEL_VAR, PMEM_LOG_FILE_VAR,
-			PMEM_MAJOR_VERSION, PMEM_MINOR_VERSION);
-	LOG(3, NULL);
-	util_init();
-}
-
-/*
- * libpmem_fini -- libpmem cleanup routine
- *
- * Called automatically when the process terminates.
- */
-#ifndef WIN32
-__attribute__((destructor))
-static void
-#else
-void
-#endif
-libpmem_fini(void)
-{
-	LOG(3, NULL);
-	out_fini();
-}
-
-/*
- * pmem_check_version -- see if library meets application version requirements
- */
-const char *
-pmem_check_version(unsigned major_required, unsigned minor_required)
-{
-	LOG(3, "major_required %u minor_required %u",
-			major_required, minor_required);
-
-	if (major_required != PMEM_MAJOR_VERSION) {
-		ERR("libpmem major version mismatch (need %u, found %u)",
-			major_required, PMEM_MAJOR_VERSION);
-		return out_get_errormsg();
-	}
-
-	if (minor_required > PMEM_MINOR_VERSION) {
-		ERR("libpmem minor version mismatch (need %u, found %u)",
-			minor_required, PMEM_MINOR_VERSION);
-		return out_get_errormsg();
-	}
-
-	return NULL;
-}
-
-/*
- * pmem_errormsg -- return last error message
- */
-const char *
-pmem_errormsg(void)
-{
-	return out_get_errormsg();
-}
+#define	uuid_generate(u) CoCreateGuid((GUID *)(u))

@@ -103,7 +103,7 @@ bucket_new(size_t unit_size, int unit_max)
 	b->unit_max = unit_max;
 
 	if (bucket_is_small(b)) {
-		b->bitmap_nallocs = RUNSIZE / unit_size;
+		b->bitmap_nallocs = (int)(RUNSIZE / unit_size);
 		int unused_bits = RUN_BITMAP_SIZE - b->bitmap_nallocs;
 		int unused_values = unused_bits / BITS_PER_VALUE;
 		b->bitmap_nval = MAX_BITMAP_VALUES - unused_values;
@@ -199,7 +199,7 @@ uint32_t
 bucket_calc_units(struct bucket *b, size_t size)
 {
 	ASSERT(size != 0);
-	return ((size - 1) / b->unit_size) + 1;
+	return (uint32_t)((size - 1) / b->unit_size) + 1;
 }
 
 /*

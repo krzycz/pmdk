@@ -264,24 +264,27 @@ util_tmpfile(const char *dir, size_t size)
 	LOG(3, "dir %s size %zu", dir, size);
 
 	static char template[] = "/vmem.XXXXXX";
+	int fd = -1;
 
-	char fullname[strlen(dir) + sizeof (template)];
+	char fullname[PATH_MAX];
 	(void) strcpy(fullname, dir);
 	(void) strcat(fullname, template);
 
+#ifndef WIN32
 	sigset_t set, oldset;
 	sigfillset(&set);
 	(void) sigprocmask(SIG_BLOCK, &set, &oldset);
+#endif
 
-	int fd;
 	if ((fd = mkstemp(fullname)) < 0) {
 		ERR("!mkstemp");
 		goto err;
 	}
 
 	(void) unlink(fullname);
+#ifndef WIN32
 	(void) sigprocmask(SIG_SETMASK, &oldset, NULL);
-
+#endif
 	LOG(3, "unlinked file is \"%s\"", fullname);
 
 	if ((errno = posix_fallocate(fd, 0, size)) != 0) {
@@ -294,7 +297,9 @@ util_tmpfile(const char *dir, size_t size)
 err:
 	LOG(1, "return -1");
 	int oerrno = errno;
+#ifndef WIN32
 	(void) sigprocmask(SIG_SETMASK, &oldset, NULL);
+#endif
 	if (fd != -1)
 		(void) close(fd);
 	errno = oerrno;
@@ -341,7 +346,7 @@ int
 util_checksum(void *addr, size_t len, uint64_t *csump, int insert)
 {
 	uint32_t *p32 = addr;
-	uint32_t *p32end = addr + len;
+	uint32_t *p32end = (uint32_t *)((char *)addr + len);
 	uint32_t lo32 = 0;
 	uint32_t hi32 = 0;
 	uint64_t csum;
@@ -414,6 +419,7 @@ util_convert_hdr(struct pool_hdr *hdrp)
 int
 util_get_arch_flags(struct arch_flags *arch_flags)
 {
+#ifndef WIN32
 	char *path = "/proc/self/exe";
 	int fd;
 	ElfW(Ehdr) elf;
@@ -451,6 +457,9 @@ out_close:
 	close(fd);
 out:
 	return ret;
+#else
+	return 0; /* GetSystemInfo */
+#endif
 }
 
 /*

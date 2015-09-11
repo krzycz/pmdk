@@ -203,7 +203,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <xmmintrin.h>
+#include <emmintrin.h>
 
 #include "libpmem.h"
 
@@ -212,6 +212,7 @@
 #include "out.h"
 #include "valgrind_internal.h"
 
+#ifndef WIN32
 /*
  * The x86 memory instructions are new enough that the compiler
  * intrinsic functions are not always available.  The intrinsic
@@ -223,6 +224,7 @@
 	asm volatile(".byte 0x66; xsaveopt %0" : "+m" (*(volatile char *)addr));
 #define	_mm_pcommit()\
 	asm volatile(".byte 0x66, 0x0f, 0xae, 0xf8");
+#endif
 
 #define	FLUSH_ALIGN 64
 
@@ -515,6 +517,7 @@ is_pmem_never(void *addr, size_t len)
 static int
 is_pmem_proc(void *addr, size_t len)
 {
+#ifndef WIN32
 	char *caddr = addr;
 
 	FILE *fp;
@@ -581,7 +584,9 @@ is_pmem_proc(void *addr, size_t len)
 	}
 
 	fclose(fp);
-
+#else
+	int retval = 0;
+#endif
 	LOG(3, "returning %d", retval);
 	return retval;
 }
@@ -693,8 +698,8 @@ memmove_nodrain_movnt(void *pmemdest, const void *src, size_t len)
 				s8++;
 			}
 			pmem_flush(dest1, cnt);
-			dest1 += cnt;
-			src += cnt;
+			dest1 = (void *)((uintptr_t)dest1 + cnt);
+			src = (void *)((uintptr_t)src + cnt);
 			len -= cnt;
 		}
 
@@ -768,8 +773,8 @@ memmove_nodrain_movnt(void *pmemdest, const void *src, size_t len)
 		 * overlapped destination range.
 		 */
 
-		dest1 = dest1 + len;
-		src = src + len;
+		dest1 = (void *)((uintptr_t)dest1 + len);
+		src = (void *)((uintptr_t)src + len);
 
 		cnt = (uint64_t)dest1 & ALIGN_MASK;
 		if (cnt > 0) {
@@ -785,8 +790,8 @@ memmove_nodrain_movnt(void *pmemdest, const void *src, size_t len)
 				*d8 = *s8;
 			}
 			pmem_flush(d8, cnt);
-			dest1 -= cnt;
-			src -= cnt;
+			dest1 = (void *)((uintptr_t)dest1 - cnt);
+			src = (void *)((uintptr_t)src - cnt);
 			len -= cnt;
 		}
 
@@ -961,7 +966,7 @@ memset_nodrain_movnt(void *pmemdest, int c, size_t len)
 		memset(dest1, c, cnt);
 		pmem_flush(dest1, cnt);
 		len -= cnt;
-		dest1 += cnt;
+		dest1 = (void *)((uintptr_t)dest1 + cnt);
 	}
 
 	xmm0 = _mm_set_epi8(c, c, c, c,
@@ -1062,8 +1067,12 @@ pmem_memset_persist(void *pmemdest, int c, size_t len)
  *
  * Called automatically by the run-time loader.
  */
+#ifndef WIN32
 __attribute__((constructor))
 static void
+#else
+void
+#endif
 pmem_init(void)
 {
 	out_init(PMEM_LOG_PREFIX, PMEM_LOG_LEVEL_VAR, PMEM_LOG_FILE_VAR,
@@ -1071,6 +1080,7 @@ pmem_init(void)
 	LOG(3, NULL);
 	util_init();
 
+#ifndef WIN32
 	/* detect supported cache flush features */
 	FILE *fp;
 	if ((fp = fopen("/proc/cpuinfo", "r")) == NULL) {
@@ -1162,6 +1172,7 @@ pmem_init(void)
 
 		fclose(fp);
 	}
+#endif
 
 	/*
 	 * For testing, allow overriding the default threshold
