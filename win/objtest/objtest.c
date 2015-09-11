@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Intel Corporation
+ * Copyright (c) 2015, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,83 +31,36 @@
  */
 
 /*
- * libpmem.c -- pmem entry points for libpmem
+ * objtest.c -- simple obj example
  */
 
-#include <stdio.h>
-#include <stdint.h>
+#include <libpmemobj.h>
 
-#include "libpmem.h"
+struct myobj {
+	int x;
+};
 
-#include "pmem.h"
-#include "util.h"
-#include "out.h"
+TOID_DECLARE(struct myobj, 1);
 
-/*
- * libpmem_init -- load-time initialization for libpmem
- *
- * Called automatically by the run-time loader.
- */
-#ifndef WIN32
-__attribute__((constructor))
-static void
-#else
-void
-#endif
-libpmem_init(void)
+int main(int argc, const char *argv[])
 {
-	out_init(PMEM_LOG_PREFIX, PMEM_LOG_LEVEL_VAR, PMEM_LOG_FILE_VAR,
-			PMEM_MAJOR_VERSION, PMEM_MINOR_VERSION);
-	LOG(3, NULL);
-	util_init();
-}
+	PMEMobjpool *pop = pmemobj_create("testfile", "test",
+		PMEMOBJ_MIN_POOL, 0);
 
-/*
- * libpmem_fini -- libpmem cleanup routine
- *
- * Called automatically when the process terminates.
- */
-#ifndef WIN32
-__attribute__((destructor))
-static void
-#else
-void
-#endif
-libpmem_fini(void)
-{
-	LOG(3, NULL);
-	out_fini();
-}
+	PMEMoid oid;
+	int ret = pmemobj_alloc(pop, &oid, sizeof (struct myobj),
+		0, NULL, NULL);
+	if (ret)
+		exit(1);
 
-/*
- * pmem_check_version -- see if library meets application version requirements
- */
-const char *
-pmem_check_version(unsigned major_required, unsigned minor_required)
-{
-	LOG(3, "major_required %u minor_required %u",
-			major_required, minor_required);
+	pmemobj_free(&oid);
 
-	if (major_required != PMEM_MAJOR_VERSION) {
-		ERR("libpmem major version mismatch (need %u, found %u)",
-			major_required, PMEM_MAJOR_VERSION);
-		return out_get_errormsg();
-	}
+	TOID(struct myobj) o;
 
-	if (minor_required > PMEM_MINOR_VERSION) {
-		ERR("libpmem minor version mismatch (need %u, found %u)",
-			minor_required, PMEM_MINOR_VERSION);
-		return out_get_errormsg();
-	}
+	POBJ_ZNEW(pop, &o, struct myobj);
+	POBJ_FREE(&o);
 
-	return NULL;
-}
+	pmemobj_close(pop);
 
-/*
- * pmem_errormsg -- return last error message
- */
-const char *
-pmem_errormsg(void)
-{
-	return out_get_errormsg();
+	return 0;
 }

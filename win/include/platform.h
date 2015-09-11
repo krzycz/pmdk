@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Intel Corporation
+ * Copyright (c) 2015, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,83 +31,55 @@
  */
 
 /*
- * libpmem.c -- pmem entry points for libpmem
+ * platform.h -- dirty hacks to compile linux code on windows
  */
 
-#include <stdio.h>
+#include <windows.h>
 #include <stdint.h>
+#include <io.h>
+#include <process.h>
 
-#include "libpmem.h"
+#define	PATH_MAX MAX_PATH
+#define	__thread __declspec(thread)
+#define	__attribute__(a)
+#define	__func__ __FUNCTION__
+#define	restrict __restrict
+#define	mode_t int
+#define	ssize_t long long int
 
-#include "pmem.h"
-#include "util.h"
-#include "out.h"
 
-/*
- * libpmem_init -- load-time initialization for libpmem
- *
- * Called automatically by the run-time loader.
- */
-#ifndef WIN32
-__attribute__((constructor))
-static void
-#else
-void
-#endif
-libpmem_init(void)
+__inline int
+__builtin_clzll(uint64_t val)
 {
-	out_init(PMEM_LOG_PREFIX, PMEM_LOG_LEVEL_VAR, PMEM_LOG_FILE_VAR,
-			PMEM_MAJOR_VERSION, PMEM_MINOR_VERSION);
-	LOG(3, NULL);
-	util_init();
+	unsigned long lz = 0;
+
+	if (_BitScanReverse64(&lz, val))
+		return 63 - (int)lz;
+	else
+		return 64;
 }
 
-/*
- * libpmem_fini -- libpmem cleanup routine
- *
- * Called automatically when the process terminates.
- */
-#ifndef WIN32
-__attribute__((destructor))
-static void
-#else
-void
-#endif
-libpmem_fini(void)
-{
-	LOG(3, NULL);
-	out_fini();
+__inline uint64_t
+__sync_fetch_and_and(volatile uint64_t *a, uint64_t val) {
+	return _InterlockedAnd64(a, val);
 }
 
-/*
- * pmem_check_version -- see if library meets application version requirements
- */
-const char *
-pmem_check_version(unsigned major_required, unsigned minor_required)
-{
-	LOG(3, "major_required %u minor_required %u",
-			major_required, minor_required);
-
-	if (major_required != PMEM_MAJOR_VERSION) {
-		ERR("libpmem major version mismatch (need %u, found %u)",
-			major_required, PMEM_MAJOR_VERSION);
-		return out_get_errormsg();
-	}
-
-	if (minor_required > PMEM_MINOR_VERSION) {
-		ERR("libpmem minor version mismatch (need %u, found %u)",
-			minor_required, PMEM_MINOR_VERSION);
-		return out_get_errormsg();
-	}
-
-	return NULL;
+__inline uint64_t
+__sync_fetch_and_add(volatile uint64_t *a, uint64_t val) {
+	return _InterlockedExchangeAdd64(a, val);
 }
 
-/*
- * pmem_errormsg -- return last error message
- */
-const char *
-pmem_errormsg(void)
-{
-	return out_get_errormsg();
+__inline int
+__sync_bool_compare_and_swap(volatile uint64_t *ptr, uint64_t oldval, uint64_t newval) {
+	return (int)_InterlockedCompareExchange64(ptr, oldval, newval);
 }
+
+#define	LOCK_EX 0
+#define	LOCK_NB 0
+
+#define	flock(fd, flags) 0
+#define	fchmod(fd, mode) 0
+#define	setlinebuf(o)
+#define	strsep(line, sep) NULL
+#define	mkstemp(n) 0
+#define	posix_fallocate(fd, p, size) 0
