@@ -52,8 +52,10 @@
 #include "valgrind_internal.h"
 
 static struct cuckoo *pools;
+#ifndef WIN32
 int _pobj_cache_invalidate;
 __thread struct _pobj_pcache _pobj_cached_pool;
+#endif
 
 /*
  * obj_init -- initialization of obj
@@ -765,16 +767,20 @@ pmemobj_close(PMEMobjpool *pop)
 {
 	LOG(3, "pop %p", pop);
 
+#ifndef WIN32
 	_pobj_cache_invalidate++;
+#endif
 
 	if (cuckoo_remove(pools, pop->uuid_lo) != pop) {
 		ERR("!cuckoo_remove");
 	}
 
+#ifndef WIN32
 	if (_pobj_cached_pool.pop == pop) {
 		_pobj_cached_pool.pop = NULL;
 		_pobj_cached_pool.uuid_lo = 0;
 	}
+#endif
 
 	pmemobj_cleanup(pop);
 }
