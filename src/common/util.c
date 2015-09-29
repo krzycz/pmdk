@@ -527,7 +527,7 @@ out:
 #else
 
 	SYSTEM_INFO si;
-	GetSystemInfo(&si); 
+	GetSystemInfo(&si);
 
 	arch_flags->e_machine = si.wProcessorArchitecture;
 	arch_flags->ei_class = 0; /* si.dwProcessorType; */

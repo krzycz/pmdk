@@ -305,7 +305,7 @@ lane_hold(PMEMobjpool *pop, struct lane_section **section,
 	int err = 0;
 
 	if (lane_idx == -1)
-		lane_idx = __sync_fetch_and_add32(&next_lane_idx, 1);
+		lane_idx = __sync_fetch_and_add(&next_lane_idx, 1);
 
 	struct lane *lane = &pop->lanes[lane_idx % pop->nlanes];
 

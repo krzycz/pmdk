@@ -106,8 +106,7 @@ int main(int argc, const char *argv[])
 	/* allocattion with ctor */
 	struct carg a = { 1234, "Hello world!" };
 	PMEMoid oid;
-	ret = pmemobj_alloc(pop, &oid, sizeof (struct myobj),
-		0, constr, &a);
+	ret = pmemobj_alloc(pop, &oid, sizeof (struct myobj), 0, constr, &a);
 	if (ret)
 		exit(1);
 
@@ -117,7 +116,7 @@ int main(int argc, const char *argv[])
 	TX_BEGIN(pop) {
 		TX_ADD(root);
 		D_RW(root)->obj = TX_ZNEW(struct myobj);
-		D_RW(D_RW(root)->obj)->value = 5;		
+		D_RW(D_RW(root)->obj)->value = 5;
 	} TX_ONCOMMIT {
 		printf("transaction committed\n");
 	} TX_END;
