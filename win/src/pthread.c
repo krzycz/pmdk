@@ -232,7 +232,7 @@ pthread_rwlock_timedwrlock(pthread_rwlock_t *restrict rwlock,
 int
 pthread_rwlock_unlock(pthread_rwlock_t *restrict rwlock)
 {
-	/* XXX - distinquish between shared/exclusive lock */	
+	/* XXX - distinquish between shared/exclusive lock */
 	ReleaseSRWLockExclusive(rwlock); /* ReleaseSRWLockShared(rwlock); */
 	return 0;
 }

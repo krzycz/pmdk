@@ -46,7 +46,7 @@
 #endif
 
 #ifdef USE_WIN_SRWLOCK
-#define	pthread_rwlock_t SRWLOCK 
+#define	pthread_rwlock_t SRWLOCK
 #else
 #define	pthread_rwlock_t pthread_mutex_t
 #endif
