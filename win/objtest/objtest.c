@@ -257,7 +257,7 @@ main(int argc, const char *argv[])
 					pmemobj_type_num(oid), type_num);
 		printf("myobj: usable size = %zu\n",
 					pmemobj_alloc_usable_size(oid));
-	
+
 		pmemobj_free(&oid);
 	}
 
