@@ -56,10 +56,8 @@
 static struct cuckoo *pools_ht; /* hash table used for searching by UUID */
 static struct ctree *pools_tree; /* tree used for searching by address */
 
-#ifndef WIN32
 int _pobj_cache_invalidate;
 __thread struct _pobj_pcache _pobj_cached_pool;
-#endif
 
 /*
  * obj_init -- initialization of obj
