@@ -77,7 +77,7 @@ struct {
 	int unit_max;
 } bucket_proto[MAX_BUCKETS];
 
-#define	BIT_IS_CLR(a, i)	(!((a) & (1L << (i))))
+#define	BIT_IS_CLR(a, i)	(!((a) & (1ULL << (i))))
 
 struct active_run {
 	uint32_t chunk_id;
@@ -328,7 +328,7 @@ heap_populate_run_bucket(PMEMobjpool *pop, struct bucket *b,
 			heap_run_insert(b, chunk_id, zone_id,
 				BITS_PER_VALUE, block_off);
 			continue;
-		} else if (v == ~0L) {
+		} else if (v == UINT64_MAX) {
 			continue;
 		}
 
@@ -363,7 +363,7 @@ static int
 heap_run_is_empty(struct chunk_run *run)
 {
 	for (int i = 0; i < MAX_BITMAP_VALUES; ++i)
-		if (run->bitmap[i] != ~0L)
+		if (run->bitmap[i] != UINT64_MAX)
 			return 0;
 
 	return 1;
@@ -840,7 +840,7 @@ heap_get_block_header(PMEMobjpool *pop, struct memory_block m,
 	}
 
 	struct chunk_run *r = (struct chunk_run *)&z->chunks[m.chunk_id];
-	uint64_t bmask = ((1L << m.size_idx) - 1L) <<
+	uint64_t bmask = ((1ULL << m.size_idx) - 1ULL) <<
 			(m.block_off % BITS_PER_VALUE);
 
 	int bpos = m.block_off / BITS_PER_VALUE;
