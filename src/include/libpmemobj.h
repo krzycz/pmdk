@@ -174,7 +174,16 @@ typedef struct pmemoid {
 	uint64_t off;
 } PMEMoid;
 
+#ifdef WIN32
+
+static const PMEMoid OID_NULL = { 0, 0 };
+
+#else /* WIN32 */
+
 #define	OID_NULL	((PMEMoid) {0, 0})
+
+#endif /* WIN32 */
+
 #define	TOID_NULL(t)	((TOID(t))OID_NULL)
 #define	OID_IS_NULL(o)	((o).off == 0)
 #define	OID_EQUALS(lhs, rhs)\
@@ -184,12 +193,20 @@ typedef struct pmemoid {
 /*
  * Type safety macros
  */
+#ifndef WIN32
 
 #define	TOID_ASSIGN(o, value) (\
 {\
 	(o).oid = value;\
 	(o);\
 })
+
+#else /* WIN32 */
+
+#define	TOID_ASSIGN(o, value) ((o).oid = value, (o))
+
+#endif /* WIN32 */
+
 #define	TOID_EQUALS(lhs, rhs)\
 ((lhs).oid.off == (rhs).oid.off &&\
 	(lhs).oid.pool_uuid_lo == (rhs).oid.pool_uuid_lo)
@@ -502,6 +519,9 @@ PMEMoid pmemobj_first(PMEMobjpool *pop, unsigned int type_num);
  */
 PMEMoid pmemobj_next(PMEMoid oid);
 
+
+#ifndef WIN32
+
 #define	POBJ_FIRST(pop, t) (\
 { TOID(t) _pobj_ret = (TOID(t))pmemobj_first((pop), TOID_TYPE_NUM(t));\
 _pobj_ret; })
@@ -510,6 +530,13 @@ _pobj_ret; })
 { typeof (o) _pobj_ret = (typeof (o))pmemobj_next((o).oid);\
 _pobj_ret; })
 
+#else
+
+#define	POBJ_FIRST(pop, t) ((TOID(t))pmemobj_first((pop), TOID_TYPE_NUM(t)))
+
+#define	POBJ_NEXT(o) ((typeof (o))pmemobj_next((o).oid))
+
+#endif
 
 
 #ifndef WIN32
@@ -659,6 +686,12 @@ int pmemobj_list_move(PMEMobjpool *pop, size_t pe_old_offset,
 	void *head_old, size_t pe_new_offset, void *head_new,
 	PMEMoid dest, int before, PMEMoid oid);
 
+/*
+ * similar to offsetof, except that is takes a structure pointer,
+ * instead of a structure type name
+ */
+#define	offsetofp(s, m) ((size_t)&(((s)0)->m))
+
 #define	POBJ_LIST_FIRST(head)	((head)->pe_first)
 #define	POBJ_LIST_LAST(head, field) (\
 TOID_IS_NULL((head)->pe_first) ?\
@@ -673,7 +706,7 @@ D_RO((head)->pe_first)->field.pe_prev)
 
 #define	POBJ_LIST_FOREACH(var, head, field)\
 for (_POBJ_DEBUG_NOTICE_IN_TX_FOR("POBJ_LIST_FOREACH")\
-	(var) =  POBJ_LIST_FIRST((head));\
+	(var) = POBJ_LIST_FIRST((head));\
 	TOID_IS_NULL((var)) == 0;\
 	TOID_EQUALS(POBJ_LIST_NEXT((var), field),\
 	POBJ_LIST_FIRST((head))) ?\
@@ -691,84 +724,84 @@ for (_POBJ_DEBUG_NOTICE_IN_TX_FOR("POBJ_LIST_FOREACH_REVERSE")\
 
 #define	POBJ_LIST_INSERT_HEAD(pop, head, elm, field)\
 pmemobj_list_insert((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof (POBJ_LIST_FIRST(head)._type), field),\
 	(head), OID_NULL,\
 	POBJ_LIST_DEST_HEAD, (elm).oid)
 
 #define	POBJ_LIST_INSERT_TAIL(pop, head, elm, field)\
 pmemobj_list_insert((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof (POBJ_LIST_FIRST(head)._type), field),\
 	(head), OID_NULL,\
 	POBJ_LIST_DEST_TAIL, (elm).oid)
 
 #define	POBJ_LIST_INSERT_AFTER(pop, head, listelm, elm, field)\
 pmemobj_list_insert((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head)._type), field),\
 	(head), (listelm).oid,\
 	0 /* after */, (elm).oid)
 
 #define	POBJ_LIST_INSERT_BEFORE(pop, head, listelm, elm, field)\
 pmemobj_list_insert((pop), \
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head)._type), field),\
 	(head), (listelm).oid,\
 	1 /* before */, (elm).oid)
 
 #define	POBJ_LIST_INSERT_NEW_HEAD(pop, head, field, size, constr, arg)\
 pmemobj_list_insert_new((pop),\
-	offsetof(typeof (*((head)->pe_first._type)), field),\
+	offsetofp(typeof ((head)->pe_first._type), field),\
 	(head), OID_NULL, POBJ_LIST_DEST_HEAD, (size),\
 	TOID_TYPE_NUM_OF((head)->pe_first), (constr), (arg))
 
 #define	POBJ_LIST_INSERT_NEW_TAIL(pop, head, field, size, constr, arg)\
 pmemobj_list_insert_new((pop),\
-	offsetof(typeof (*((head)->pe_first._type)), field),\
+	offsetofp(typeof ((head)->pe_first._type), field),\
 	(head), OID_NULL, POBJ_LIST_DEST_TAIL, (size),\
 	TOID_TYPE_NUM_OF((head)->pe_first), (constr), (arg))
 
 #define	POBJ_LIST_INSERT_NEW_AFTER(pop, head, listelm, field, size,\
 	constr, arg)\
 pmemobj_list_insert_new((pop),\
-	offsetof(typeof (*((head)->pe_first._type)), field),\
+	offsetofp(typeof((head)->pe_first._type), field),\
 	(head), (listelm).oid, 0 /* after */, (size),\
 	TOID_TYPE_NUM_OF((head)->pe_first), (constr), (arg))
 
 #define	POBJ_LIST_INSERT_NEW_BEFORE(pop, head, listelm, field, size,\
 		constr, arg)\
 pmemobj_list_insert_new((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head)._type), field),\
 	(head), (listelm).oid, 1 /* before */, (size),\
 	TOID_TYPE_NUM_OF((head)->pe_first), (constr), (arg))
 
 #define	POBJ_LIST_REMOVE(pop, head, elm, field)\
 pmemobj_list_remove((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head)._type), field),\
 	(head), (elm).oid, 0 /* no free */)
 
 #define	POBJ_LIST_REMOVE_FREE(pop, head, elm, field)\
 pmemobj_list_remove((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head)._type), field),\
 	(head), (elm).oid, 1 /* free */)
 
 #define	POBJ_LIST_MOVE_ELEMENT_HEAD(pop, head, head_new, elm, field, field_new)\
 pmemobj_list_move((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head)._type), field),\
 	(head),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head_new)._type)), field_new),\
+	offsetofp(typeof (POBJ_LIST_FIRST(head_new)._type), field_new),\
 	(head_new), OID_NULL, POBJ_LIST_DEST_HEAD, (elm).oid)
 
 #define	POBJ_LIST_MOVE_ELEMENT_TAIL(pop, head, head_new, elm, field, field_new)\
 pmemobj_list_move((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head)._type), field),\
 	(head),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head_new)._type)), field_new),\
+	offsetofp(typeof (POBJ_LIST_FIRST(head_new)._type), field_new),\
 	(head_new), OID_NULL, POBJ_LIST_DEST_TAIL, (elm).oid)
 
 #define	POBJ_LIST_MOVE_ELEMENT_AFTER(pop,\
 	head, head_new, listelm, elm, field, field_new)\
 pmemobj_list_move((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head)._type), field),\
 	(head),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head_new)._type)), field_new),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head_new)._type), field_new),\
 	(head_new),\
 	(listelm).oid,\
 	0 /* after */, (elm).oid)
@@ -776,9 +809,9 @@ pmemobj_list_move((pop),\
 #define	POBJ_LIST_MOVE_ELEMENT_BEFORE(pop,\
 	head, head_new, listelm, elm, field, field_new)\
 pmemobj_list_move((pop),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head)._type)), field),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head)._type), field),\
 	(head),\
-	offsetof(typeof (*(POBJ_LIST_FIRST(head_new)._type)), field_new),\
+	offsetofp(typeof(POBJ_LIST_FIRST(head_new)._type), field_new),\
 	(head_new),\
 	(listelm).oid,\
 	1 /* before */, (elm).oid)
@@ -976,7 +1009,7 @@ int pmemobj_tx_free(PMEMoid oid);
 pmemobj_tx_add_range((o).oid, 0, sizeof (*(o)._type))
 
 #define	TX_ADD_FIELD(o, field)\
-pmemobj_tx_add_range((o).oid, offsetof(typeof (*(o)._type), field),\
+pmemobj_tx_add_range((o).oid, offsetofp(typeof ((o)._type), field),\
 		sizeof (D_RO(o)->field))
 
 
@@ -992,14 +1025,14 @@ pmemobj_tx_add_range((o).oid, offsetof(typeof (*(o)._type), field),\
 
 #ifndef __cplusplus
 #define	_TX_ALLOC(func, t, ...)\
-(TOID(t)func(__VA_ARGS__))
+(TOID(t)(func(__VA_ARGS__)))
 #define	_TX_REALLOC(func, o, ...)\
 (func((o).oid, __VA_ARGS__))
 #else
 #define	_TX_ALLOC(func, t, ...)\
-(TOID(t)func(__VA_ARGS__))
+(TOID(t)(func(__VA_ARGS__)))
 #define	_TX_REALLOC(func, o, ...)\
-((typeof (o))func((o).oid, __VA_ARGS__))
+((typeof (o))(func((o).oid, __VA_ARGS__)))
 #endif
 
 #endif /* WIN32 */
@@ -1019,7 +1052,7 @@ pmemobj_tx_add_range((o).oid, offsetof(typeof (*(o)._type), field),\
 #define	TX_REALLOC(o, size)\
 (_TX_REALLOC(pmemobj_tx_realloc, o, size, TOID_TYPE_NUM_OF(o)))
 
-#define	TX_ZREALLOC(o, size) (\
+#define	TX_ZREALLOC(o, size)\
 (_TX_REALLOC(pmemobj_tx_zrealloc, o, size, TOID_TYPE_NUM_OF(o)))
 
 #define	TX_STRDUP(s, type_num)\
@@ -1028,10 +1061,21 @@ pmemobj_tx_strdup(s, type_num)
 #define	TX_FREE(o)\
 pmemobj_tx_free((o).oid)
 
+#ifndef WIN32
+
 #define	TX_SET(o, field, value) (\
 {\
 	TX_ADD_FIELD(o, field);\
 	D_RW(o)->field = value; })
+
+#else /* WIN32 */
+
+#define	TX_SET(o, field, value) (\
+	TX_ADD_FIELD(o, field),\
+	D_RW(o)->field = value)
+
+#endif /* WIN32 */
+
 
 static inline void *
 TX_MEMCPY(void *dest, const void *src, size_t num)

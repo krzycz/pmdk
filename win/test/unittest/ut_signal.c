@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Intel Corporation
+ * Copyright (c) 2014-2015, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,82 +31,22 @@
  */
 
 /*
- * obj_out_of_memory.c -- allocate objects until OOM
+ * ut_signal.c -- unit test signal operations
  */
 
-#include <stdlib.h>
 #include "unittest.h"
 
-#define	LAYOUT_NAME "out_of_memory"
-
-struct cargs {
-	size_t size;
-};
-
-static void
-test_constructor(PMEMobjpool *pop, void *addr, void *args)
-{
-	struct cargs *a = (struct cargs *)args;
-	pmemobj_memset_persist(pop, addr, rand() % 256, a->size / 2);
-}
-
-static void
-test_alloc(PMEMobjpool *pop, size_t size)
-{
-	unsigned long cnt = 0;
-
-	while (1) {
-		struct cargs args = { size };
-		if (pmemobj_alloc(pop, NULL, size, 0,
-				test_constructor, &args) != 0)
-			break;
-		cnt++;
-	}
-
-	OUT("size: %zu allocs: %lu", size, cnt);
-}
-
-static void
-test_free(PMEMobjpool *pop)
-{
-	PMEMoid oid;
-	PMEMoid next;
-	int type_num;
-
-	POBJ_FOREACH_SAFE(pop, oid, next, type_num)
-		pmemobj_free(&oid);
-}
-
+/*
+ * ut_sigaction -- a sigaction that cannot return < 0
+ */
 int
-main(int argc, char *argv[])
+ut_sigaction(const char *file, int line, const char *func,
+		int signum, struct sigaction *act, struct sigaction *oldact)
 {
-	START(argc, argv, "obj_out_of_memory");
+	int retval = sigaction(signum, act, oldact);
 
-	if (argc < 3)
-		FATAL("usage: %s size filename ...", argv[0]);
+	if (retval != 0)
+		ut_fatal(file, line, func, "!sigaction: %s", strsignal(signum));
 
-	size_t size = atoll(argv[1]);
-
-	for (int i = 2; i < argc; i++) {
-		const char *path = argv[i];
-
-		PMEMobjpool *pop = pmemobj_create(path, LAYOUT_NAME, 0,
-					S_IWUSR | S_IRUSR);
-		if (pop == NULL)
-			FATAL("!pmemobj_create: %s", path);
-
-		test_alloc(pop, size);
-
-		pmemobj_close(pop);
-
-		ASSERTeq(pmemobj_check(path, LAYOUT_NAME), 1);
-
-		ASSERTne(pop = pmemobj_open(path, LAYOUT_NAME), NULL);
-
-		test_free(pop);
-
-		pmemobj_close(pop);
-	}
-
-	DONE(NULL);
+	return retval;
 }
