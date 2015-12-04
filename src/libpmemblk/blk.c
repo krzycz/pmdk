@@ -44,6 +44,7 @@
 #include <stdint.h>
 #include <uuid/uuid.h>
 #include <pthread.h>
+#include <endian.h>
 
 #include "libpmem.h"
 #include "libpmemblk.h"
@@ -758,3 +759,14 @@ pmemblk_check(const char *path, size_t bsize)
 
 	return retval;
 }
+
+#ifdef WIN32
+void WINAPI libpmemblk_init(void);
+
+/*
+ * library constructor function
+ */
+#pragma section(".CRT$XCU", read)
+__declspec(allocate(".CRT$XCU"))
+const void (WINAPI *_libpmemblk_init)(void) = libpmemblk_init;
+#endif
