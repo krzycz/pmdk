@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Intel Corporation
+ * Copyright (c) 2014-2016, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -169,11 +169,13 @@ do_rewind(PMEMlogpool *plp)
 static int
 printit(const void *buf, size_t len, void *arg)
 {
-	char *str = alloca(len + 1);
+	char *str = MALLOC(len + 1);
 
 	strncpy(str, buf, len);
 	str[len] = '\0';
 	OUT("%s", str);
+
+	FREE(str);
 
 	return 1;
 }
