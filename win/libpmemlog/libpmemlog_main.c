@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2014-2016, Intel Corporation
+﻿/*
+ * Copyright (c) 2016, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,39 +31,23 @@
  */
 
 /*
- * log.h -- internal definitions for libpmem log module
+ * libpmemlog_main.c -- entry point for libpmemlog.dll
  */
 
-#include <pthread.h>
+int APIENTRY
+DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
+{
+	switch (dwReason)
+	{
+	case DLL_PROCESS_ATTACH:
+		break;
 
-#define	PMEMLOG_LOG_PREFIX "libpmemlog"
-#define	PMEMLOG_LOG_LEVEL_VAR "PMEMLOG_LOG_LEVEL"
-#define	PMEMLOG_LOG_FILE_VAR "PMEMLOG_LOG_FILE"
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
+		break;
 
-/* attributes of the log memory pool format for the pool header */
-#define	LOG_HDR_SIG "PMEMLOG"	/* must be 8 bytes including '\0' */
-#define	LOG_FORMAT_MAJOR 1
-#define	LOG_FORMAT_COMPAT 0x0000
-#define	LOG_FORMAT_INCOMPAT 0x0000
-#define	LOG_FORMAT_RO_COMPAT 0x0000
-
-extern unsigned long Pagesize;
-
-struct pmemlog {
-	struct pool_hdr hdr;	/* memory pool header */
-
-	/* root info for on-media format... */
-	uint64_t start_offset;	/* start offset of the usable log space */
-	uint64_t end_offset;	/* maximum offset of the usable log space */
-	uint64_t write_offset;	/* current write point for the log */
-
-	/* some run-time state, allocated out of memory pool... */
-	void *addr;			/* mapped region */
-	size_t size;			/* size of mapped region */
-	int is_pmem;			/* true if pool is PMEM */
-	int rdonly;			/* true if pool is opened read-only */
-	pthread_rwlock_t *rwlockp;	/* pointer to RW lock */
-};
-
-/* data area starts at this alignment after the struct pmemlog above */
-#define	LOG_FORMAT_DATA_ALIGN ((uintptr_t)4096)
+	case DLL_PROCESS_DETACH:
+		break;
+	}
+	return TRUE;
+}
