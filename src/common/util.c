@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Intel Corporation
+ * Copyright (c) 2014-2016, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -140,6 +140,7 @@ util_init(void)
 #endif
 }
 
+#ifdef WIN32
 /*
  * util_fini -- initialize the utils
  *
@@ -150,10 +151,9 @@ util_fini(void)
 {
 	LOG(3, NULL);
 
-#ifdef WIN32
 	mmap_fini();
-#endif
 }
+#endif
 
 /*
  * util_set_alloc_funcs -- allow one to override malloc, etc.
