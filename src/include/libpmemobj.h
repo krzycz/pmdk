@@ -1028,9 +1028,10 @@ pmemobj_tx_add_range((o).oid, offsetofp(__typeof__ ((o)._type), field),\
 #ifndef WIN32
 
 #define	_TX_ALLOC(func, t, ...) (\
-{ TOID(t) _pobj_ret = (TOID(t))func(__VA_ARGS__); _pobj_ret; })
+{TOID(t) _pobj_ret = (TOID(t))func(__VA_ARGS__); _pobj_ret; })
 #define	_TX_REALLOC(func, o, ...) (\
-{ __typeof__ (o) _pobj_ret = (__typeof__ (o))func((o).oid, __VA_ARGS__); _pobj_ret; })
+{__typeof__ (o) _pobj_ret = (__typeof__ (o))func((o).oid, __VA_ARGS__);\
+_pobj_ret; })
 
 #else /* WIN32 */
 
