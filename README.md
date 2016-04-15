@@ -7,6 +7,12 @@ nvml: Linux NVM Library
 This is the top-level README.md the Linux NVM Library.
 For more information, see http://pmem.io.
 
+|**NOTE**|
+|:------:|
+|**This is a development branch containing the prototype Windows port of NVM Library.
+The NVML for Windows development is still in an initial phase and only the basic functionality is supported.
+See WINDOWS.md for more information.**|
+
 ### The Libraries ###
 
 Please see the file [LICENSE](https://github.com/pmem/nvml/blob/master/LICENSE) for information on how this library is licensed.
@@ -49,7 +55,9 @@ The source tree is organized as follows:
 * **src/test** -- unit tests used by development team
 * **src/tools** -- various tools developed for NVML
 * **utils** -- utilities used during build & test
+* **win** -- Windows-specific code
 * **CONTRIBUTING.md** -- instructions for people wishing to contribute
+* **WINDOWS.md** -- more information about Windows port of NVML
 
 To build this library, you may need to install the following required packages
 on the build system:
