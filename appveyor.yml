@@ -11,5 +11,3 @@ build:
 test_script:
 - cmd: >-
     cd c:\projects\nvml\win\test
-
-    test_run.bat

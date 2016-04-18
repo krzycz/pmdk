@@ -115,18 +115,18 @@ expect_normal_exit ..\..\x64\debug\blk_nblock$Env:EXESUFFIX `
 	#512:$DIR\testfile3.512 `
 	#520:$DIR\testfile3.520 `
 	#528:$DIR\testfile3.528 `
-	#4096:$DIR\testfile3.4096 ` 
+	#4096:$DIR\testfile3.4096 `
 	#4160:$DIR\testfile3.4160 `
 	#4224:$DIR\testfile3.4224 `
 	#512:$DIR\testfile4.512 `
 	#520:$DIR\testfile4.520 `
-	#528:$DIR\testfile4.528 ` 
+	#528:$DIR\testfile4.528 `
 	#4096:$DIR\testfile4.4096 `
 	#4160:$DIR\testfile4.4160 `
 	#4224:$DIR\testfile4.4224 `
-	#512:$DIR\testfile5.512 
+	#512:$DIR\testfile5.512
 	#520:$DIR\testfile5.520 `
-	#528:$DIR\testfile5.528 ` 
+	#528:$DIR\testfile5.528 `
 	#4096:$DIR\testfile5.4096 `
 	#4160:$DIR\testfile5.4160 `
 	#4224:$DIR\testfile5.4224 `
@@ -140,7 +140,7 @@ expect_normal_exit ..\..\x64\debug\blk_nblock$Env:EXESUFFIX `
 	#520:$DIR\testfile7.520 `
 	#528:$DIR\testfile7.528 `
 	#4096:$DIR\testfile7.4096 `
-	#4160:$DIR\testfile7.4160 
+	#4160:$DIR\testfile7.4160
 	#4224:$DIR\testfile7.4224 `
 
 # check will print the appropriate pass/fail message
