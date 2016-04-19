@@ -375,10 +375,6 @@ ut_start(const char *file, int line, const char *func,
 
 	va_end(ap);
 
-	/* generate a uuid so the leaked fd gets recorded */
-	uuid_t u;
-	uuid_generate(&u);
-
 	record_open_files();
 
 	Ut_pagesize = sysconf(_SC_PAGESIZE);
