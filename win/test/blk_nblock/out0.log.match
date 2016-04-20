@@ -1,5 +1,5 @@
 blk_nblock\TEST0: START: blk_nblock
- C:\Users\peluse\source\Repos\nvml\win\x64\debug\blk_nblock.exe 512:\tmp\test_blk_nblock0\testfile1 512:\tmp\test_blk_nblock0\testfile2.512 4096:\tmp\test_blk_nblock0\testfile2.512 520:\tmp\test_blk_nblock0\testfile2.520 528:\tmp\test_blk_nblock0\testfile2.528 4096:\tmp\test_blk_nblock0\testfile2.4096 4160:\tmp\test_blk_nblock0\testfile2.4160
+ \blk_nblock.exe \testfile1 \testfile2.512 \testfile2.512 \testfile2.520 \testfile2.528 \testfile2.4096 \testfile2.4160
 \tmp\test_blk_nblock0\testfile1: pmemblk_create: Invalid argument
 \tmp\test_blk_nblock0\testfile2.512: block size 512 usable blocks: 4161462
 \tmp\test_blk_nblock0\testfile2.512: pmemblk_create: Invalid argument
