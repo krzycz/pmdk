@@ -45,10 +45,6 @@ $DIR = ""
 
 require_fs_type "local"
 
-# PL TODO:  need to find eq of linux overcommit mem, runs out pretty quick
-# with this test on windows so larger tests are commented out below
-require_unlimited_vm
-
 setup
 
 #
@@ -60,6 +56,10 @@ setup
 # These are holey files, so they actually don't take up
 # any significant space.
 #
+# If you run out of disk space you may have to comment
+# out some of these temp files.  Even though they are
+# sparse Windows still won't let you overcommit
+#
 create_holey_file 2 $DIR\testfile1
 create_holey_file 2048 $DIR\testfile2.512
 create_holey_file 2048 $DIR\testfile2.520
@@ -67,6 +67,12 @@ create_holey_file 2048 $DIR\testfile2.528
 create_holey_file 2048 $DIR\testfile2.4096
 create_holey_file 2048 $DIR\testfile2.4160
 create_holey_file 2048 $DIR\testfile2.4224
+#
+# all of the commented tests are likely
+# going to eat up more disk space than the
+# test env being used. This larger coverage is
+# provided on the linux side
+#
 #create_holey_file 536576 $DIR\testfile3.512
 #create_holey_file 536576 $DIR\testfile3.520
 #create_holey_file 536576 $DIR\testfile3.528
