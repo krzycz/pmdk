@@ -32,7 +32,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "objtest_cpp", "objtest_cpp\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{77918E36-68AA-4F9B-ACD3-646E45C3AAB2}"
 	ProjectSection(SolutionItems) = preProject
-		test\test_run.bat = test\test_run.bat
+		test\RUNTESTS.ps1 = test\RUNTESTS.ps1
+		test\testconfig.ps1.example = test\testconfig.ps1.example
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "obj_basic_integration", "test\obj_basic_integration\obj_basic_integration.vcxproj", "{254A69FE-81D1-4D6B-981F-E34BE0E4A3F2}"

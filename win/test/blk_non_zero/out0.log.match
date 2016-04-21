@@ -1,5 +1,5 @@
 blk_non_zero\TEST0: START: blk_non_zero
- C:\Users\peluse\source\Repos\nvml\win\x64\debug\blk_non_zero.exe 512 \tmp\test_blk_non_zero0\testfile1 c 0 r:0 r:1 r:34217 r:34218 z:0 z:1 r:0 e:3 r:4
+ $(nW)\blk_non_zero$(nW) 512 $(nW)\testfile1 c 0 r:0 r:1 r:34217 r:34218 z:0 z:1 r:0 e:3 r:4
 512 block size 512 usable blocks 34218
 is zeroed:	0
 read      lba 0: {0}

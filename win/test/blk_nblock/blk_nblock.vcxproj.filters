@@ -19,4 +19,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="TEST0.ps1" />
+    <None Include="TEST1.ps1" />
+    <None Include="TEST2.ps1" />
+    <None Include="err0.log.match" />
+    <None Include="err1.log.match" />
+    <None Include="err2.log.match" />
+    <None Include="out0.log.match" />
+    <None Include="out1.log.match" />
+    <None Include="out2.log.match" />
+  </ItemGroup>
 </Project>

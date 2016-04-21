@@ -18,6 +18,9 @@
   <ItemGroup>
     <ClInclude Include="..\unittest\unittest.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\unittest\unittest.ps1" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CE3F2DFB-8470-4802-AD37-21CAF6CB2681}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

@@ -17,6 +17,17 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\test\blk_non_zero\blk_non_zero.c" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="err0.log.match" />
+    <None Include="err1.log.match" />
+    <None Include="err2.log.match" />
+    <None Include="out0.log.match" />
+    <None Include="out1.log.match" />
+    <None Include="out2.log.match" />
+    <None Include="TEST0.ps1" />
+    <None Include="TEST1.ps1" />
+    <None Include="TEST2.ps1" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{18E90E1A-F2E0-40DF-9900-A14E560C9EB4}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

@@ -29,7 +29,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# RUNTEST.ps1 -- temp script to executing all tests
+# RUNTESTS.ps1 -- temp script to executing all tests
 #
 # NOTE: this is not the ported version of the bash script,
 # this is just a quick and dirty way to run all tests 
