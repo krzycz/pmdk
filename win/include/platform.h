@@ -122,6 +122,7 @@ __sync_synchronize()
 #define	fchmod(fd, mode) 0
 #define	setlinebuf(o)
 #define strtok_r strtok_s
+#define sched_yield SwitchToThread
 
 #define	SIG_BLOCK 0
 #define	SIG_SETMASK 0
