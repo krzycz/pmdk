@@ -1,5 +1,5 @@
 blk_nblock\TEST2: START: blk_nblock
- \blk_nblock.exe \testset1 \testset2
-\tmp\test_blk_nblock2\testset1: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock2\testset2: pmemblk_create: Invalid argument
+ $(nW)blk_nblock.exe $(nW)testset1 $(nW)testset2
+$(nW)\testset1: pmemblk_create: Invalid argument
+$(nW)testset2: pmemblk_create: Invalid argument
 blk_nblock\TEST2: Done

@@ -1,22 +1,22 @@
 blk_nblock\TEST1: START: blk_nblock
- \blk_nblock.exe \testfile1.2096896 \testfile1.2096897 \testfile2.0 \testfile2.1 \testfile2.17 \testfile2.511 \testfile2.1048576 \testfile2.2097152 \testfile2.4194304 \testfile2.8388608 \testfile2.16777216 \testfile2.33554432 \testfile2.67108864 \testfile2.134217728 \testfile2.268435456 \testfile2.536870912 \testfile2.1073741824 \testfile2.2147483648 \testfile2.-1
-\tmp\test_blk_nblock1\testfile1.2096896: block size 2096896 usable blocks: 256
-\tmp\test_blk_nblock1\testfile1.2096897: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.0: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.1: block size 1 usable blocks: 4161462
-\tmp\test_blk_nblock1\testfile2.17: block size 17 usable blocks: 4161462
-\tmp\test_blk_nblock1\testfile2.511: block size 511 usable blocks: 4161462
-\tmp\test_blk_nblock1\testfile2.1048576: block size 1048576 usable blocks: 1791
-\tmp\test_blk_nblock1\testfile2.2097152: block size 2097152 usable blocks: 767
-\tmp\test_blk_nblock1\testfile2.4194304: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.8388608: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.16777216: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.33554432: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.67108864: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.134217728: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.268435456: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.536870912: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.1073741824: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.2147483648: pmemblk_create: Invalid argument
-\tmp\test_blk_nblock1\testfile2.-1: pmemblk_create: Invalid argument
+ $(nW)blk_nblock.exe $(nW)testfile1.2096896 $(nW)testfile1.2096897 $(nW)testfile2.0 $(nW)testfile2.1 $(nW)testfile2.17 $(nW)testfile2.511 $(nW)testfile2.1048576 $(nW)testfile2.2097152 $(nW)testfile2.4194304 $(nW)testfile2.8388608 $(nW)testfile2.16777216 $(nW)testfile2.33554432 $(nW)testfile2.67108864 $(nW)testfile2.134217728 $(nW)testfile2.268435456 $(nW)testfile2.536870912 $(nW)testfile2.1073741824 $(nW)testfile2.2147483648 $(nW)testfile2.-1
+$(nW)testfile1.2096896: block size 2096896 usable blocks: 256
+$(nW)testfile1.2096897: pmemblk_create: Invalid argument
+$(nW)testfile2.0: pmemblk_create: Invalid argument
+$(nW)testfile2.1: block size 1 usable blocks: 4161462
+$(nW)testfile2.17: block size 17 usable blocks: 4161462
+$(nW)testfile2.511: block size 511 usable blocks: 4161462
+$(nW)testfile2.1048576: block size 1048576 usable blocks: 1791
+$(nW)testfile2.2097152: block size 2097152 usable blocks: 767
+$(nW)testfile2.4194304: pmemblk_create: Invalid argument
+$(nW)testfile2.8388608: pmemblk_create: Invalid argument
+$(nW)testfile2.16777216: pmemblk_create: Invalid argument
+$(nW)testfile2.33554432: pmemblk_create: Invalid argument
+$(nW)testfile2.67108864: pmemblk_create: Invalid argument
+$(nW)testfile2.134217728: pmemblk_create: Invalid argument
+$(nW)testfile2.268435456: pmemblk_create: Invalid argument
+$(nW)testfile2.536870912: pmemblk_create: Invalid argument
+$(nW)testfile2.1073741824: pmemblk_create: Invalid argument
+$(nW)testfile2.2147483648: pmemblk_create: Invalid argument
+$(nW)testfile2.-1: pmemblk_create: Invalid argument
 blk_nblock\TEST1: Done

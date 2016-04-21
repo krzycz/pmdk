@@ -483,6 +483,7 @@ function fail {
     Write-Host -NoNewLine -foregroundcolor red $msg  
     Write-Host -NoNewline (" with errorcode " + $args[0])
     Write-Host -NoNewline (":" + $tm)
+    Write-Host ""
     exit $args[0]
 }
 
