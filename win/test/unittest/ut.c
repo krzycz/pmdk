@@ -370,19 +370,7 @@ ut_start(const char *file, int line, const char *func,
 
 	out(OF_NONL, 0, "     args:");
 	for (int i = 0; i < argc; i++)
-#ifndef WIN32
 		out(OF_NONL, " %s", argv[i]);
-#else
-	{
-		char *slash;
-		slash = strrchr(argv[i], '\\');
-		if (slash)
-			out(OF_NONL, " %s", slash);
-		else
-		out(OF_NONL, " %s", argv[i]);
-	}
-#endif
-
 	out(0, NULL);
 
 	va_end(ap);
