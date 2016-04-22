@@ -1,0 +1,13 @@
+Linux NVM Library
+
+This is win/README.
+
+This directory contains the Windows-specific source for the NVM Library.
+
+The subdirectory "include" contains header files that ...
+get delivered
+along with the libraries.  Everything else is internal to the libraries
+and lives in this directory.
+
+See the top-level README for build, test, and installation instructions.
+The basic "make" and "make test" targets also work from this directory.
