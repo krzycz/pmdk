@@ -33,10 +33,6 @@
 
 #include <sys/mman.h>
 
-//#include "util.h"
-//#include "out.h"
-
-
 /*
  * this structure tracks the file mappings outstanding per file handle
  */
@@ -64,10 +60,7 @@ HANDLE FileMappingListMutex = NULL;
 static void
 mmap_init(void)
 {
-	//LOG(3, NULL);
-
 	InitializeListHead(&FileMappingListHead);
-
 	FileMappingListMutex = CreateMutex(NULL, FALSE, NULL);
 }
 
@@ -79,8 +72,6 @@ mmap_init(void)
 static void
 mmap_fini(void)
 {
-	//LOG(3, NULL);
-
 	if (FileMappingListMutex == NULL)
 		return;
 
@@ -117,10 +108,8 @@ mmap_fini(void)
 void *
 mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 {
-	//LOG(3, "addr %p len %zu prot %d flags %d fd %d offset %ju",
-	//	addr, len, prot, flags, fd, offset);
-
 	DWORD protect = 0;
+
 	if ((prot & PROT_READ) && (prot & PROT_WRITE)) {
 		if (flags & MAP_PRIVATE) {
 			if (prot & PROT_EXEC)
@@ -140,7 +129,6 @@ mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 			protect = PAGE_READONLY;
 	} else {
 		/* XXX - PAGE_NOACCESS  */
-		//ERR("file mapping with NOACCESS is not supported");
 		return MAP_FAILED;
 	}
 
@@ -155,10 +143,8 @@ mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 					(DWORD) (len & 0xFFFFFFFF),
 					NULL);
 
-	if (fileMapping == NULL) {
-		//ERR("!CreateFileMapping %zu bytes", len);
+	if (fileMapping == NULL)
 		return MAP_FAILED;
-	}
 
 	DWORD access;
 	if (flags & MAP_PRIVATE)
@@ -174,7 +160,6 @@ mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 
 	if (base == NULL) {
 		CloseHandle(fileMapping);
-		//ERR("!MapViewOfFile %zu bytes", len);
 		return MAP_FAILED;
 	}
 
@@ -189,7 +174,6 @@ mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 
 	if (mappingTracker == NULL) {
 		CloseHandle(fileMapping);
-		//ERR("!Malloc");
 		return MAP_FAILED;
 	}
 
@@ -202,8 +186,6 @@ mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 	InsertHeadList(&FileMappingListHead, &mappingTracker->ListEntry);
 	ReleaseMutex(FileMappingListMutex);
 
-	//LOG(3, "mapped at %p", base);
-
 	return base;
 }
 
@@ -213,8 +195,6 @@ mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
 int
 munmap(void *addr, size_t len)
 {
-	//LOG(3, "addr %p len %zu", addr, len);
-
 	PLIST_ENTRY listEntry;
 	int retval = -1;
 	BOOLEAN haveMutex = TRUE;
@@ -238,11 +218,7 @@ munmap(void *addr, size_t len)
 			ReleaseMutex(FileMappingListMutex);
 			haveMutex = FALSE;
 
-			if (UnmapViewOfFile(mappingTracker->BaseAddress) == 0)
-				//ERR("!UnmapViewOfFile %p",
-				//	mappingTracker->BaseAddress);
-				;
-			else
+			if (UnmapViewOfFile(mappingTracker->BaseAddress) != 0)
 				retval = 0;
 
 			CloseHandle(mappingTracker->FileMappingHandle);
@@ -269,12 +245,8 @@ munmap(void *addr, size_t len)
 int
 msync(void *addr, size_t len, int flags)
 {
-	//LOG(3, "addr %p len %zu flags %d", addr, len, flags);
-
-	if (FlushViewOfFile(addr, len) == 0) {
-		//ERR("!FlushViewOfFile: addr %p len %zu", addr, len);
+	if (FlushViewOfFile(addr, len) == 0)
 		return -1;
-	}
 
 	PLIST_ENTRY listEntry;
 	int retval = -1;
@@ -292,12 +264,7 @@ msync(void *addr, size_t len, int flags)
 		if (mappingTracker->BaseAddress <= (PVOID *)addr &&
 		    mappingTracker->EndAddress >= (PVOID *)addr + len) {
 
-			if (FlushFileBuffers(
-					mappingTracker->FileHandle) == 0)
-				//ERR("!FlushFileBuffers %d",
-				//	mappingTracker->FileHandle); /* XXX */
-				;
-			else
+			if (FlushFileBuffers(mappingTracker->FileHandle) != 0)
 				retval = 0;
 
 			break;
@@ -318,8 +285,6 @@ msync(void *addr, size_t len, int flags)
 int
 mprotect(void *addr, size_t len, int prot)
 {
-	//LOG(3, "addr %p len %zu prot %d", addr, len, prot);
-
 	DWORD protect = 0;
 	if ((prot & PROT_READ) && (prot & PROT_WRITE)) {
 		protect |= PAGE_READWRITE;
@@ -335,8 +300,6 @@ mprotect(void *addr, size_t len, int prot)
 
 	DWORD oldprot;
 	if (VirtualProtect(addr, len, protect, &oldprot) == 0) {
-		//ERR("!VirtualProtect: addr %p len %zu, prot %d",
-		//	addr, len, prot);
 		return -1;
 	}
 

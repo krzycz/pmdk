@@ -80,28 +80,33 @@ __builtin_clzll(uint64_t val)
 }
 
 __inline uint32_t
-__sync_fetch_and_or(volatile uint32_t *a, uint32_t val) {
+__sync_fetch_and_or(volatile uint32_t *a, uint32_t val)
+{
 	return InterlockedOr((LONG *)a, (LONG)val);
 }
 
 __inline uint64_t
-__sync_fetch_and_and(volatile uint64_t *a, uint64_t val) {
+__sync_fetch_and_and(volatile uint64_t *a, uint64_t val)
+{
 	return InterlockedAnd64((LONG64 *)a, (LONG64)val);
 }
 
 __inline uint32_t
-__sync_fetch_and_add(volatile uint32_t *a, uint32_t val) {
+__sync_fetch_and_add(volatile uint32_t *a, uint32_t val)
+{
 	return InterlockedExchangeAdd(a, val);
 }
 
 __inline uint64_t
-__sync_fetch_and_add64(volatile uint64_t *a, uint64_t val) {
+__sync_fetch_and_add64(volatile uint64_t *a, uint64_t val)
+{
 	return InterlockedExchangeAdd64((LONG64 *)a, (LONG64)val);
 }
 
 __inline long
 __sync_bool_compare_and_swap(volatile uint64_t *ptr,
-				uint64_t oldval, uint64_t newval) {
+				uint64_t oldval, uint64_t newval)
+{
 	uint64_t old = InterlockedCompareExchange64((volatile LONG64 *)ptr,
 		(LONG64)newval, (LONG64)oldval);
 	return (old == oldval);
@@ -121,8 +126,8 @@ __sync_synchronize()
 
 #define	fchmod(fd, mode) 0
 #define	setlinebuf(o)
-#define strtok_r strtok_s
-#define sched_yield SwitchToThread
+#define	strtok_r strtok_s
+#define	sched_yield SwitchToThread
 
 #define	SIG_BLOCK 0
 #define	SIG_SETMASK 0
@@ -152,14 +157,14 @@ int posix_fallocate(int fd, off_t offset, off_t size);
 /*
  * helper macros for library constructor/destructor functions declaration
  */
-#define MSVC_CONSTR(func) \
+#define	MSVC_CONSTR(func) \
 void func(void); \
-__pragma(comment(linker,"/include:_" #func)) \
-__pragma(section(".CRT$XCU",read)) \
+__pragma(comment(linker, "/include:_" #func)) \
+__pragma(section(".CRT$XCU", read)) \
 __declspec(allocate(".CRT$XCU")) \
 const void (WINAPI *_##func)(void) = func;
 
-#define MSVC_DESTR(func) \
+#define	MSVC_DESTR(func) \
 void func(void); \
 static void _##func##_reg(void) { atexit(func); }; \
 MSVC_CONSTR(_##func##_reg)

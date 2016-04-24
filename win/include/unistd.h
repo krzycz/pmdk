@@ -42,7 +42,8 @@
 #define	_SC_NPROCESSORS_ONLN 1
 
 __inline long
-sysconf(int p) {
+sysconf(int p)
+{
 	SYSTEM_INFO si;
 	GetSystemInfo(&si);
 

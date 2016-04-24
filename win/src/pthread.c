@@ -90,7 +90,6 @@ pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
 	}
 }
 
-
 #define	TIMED_LOCK(action, ts) {\
 	if ((action) == TRUE)\
 		return 0;\
@@ -106,8 +105,6 @@ pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
 	}\
 	return ETIMEDOUT;\
 }
-
-
 
 int
 pthread_mutex_init(pthread_mutex_t *restrict mutex,
@@ -244,7 +241,8 @@ int
 pthread_rwlock_unlock(pthread_rwlock_t *restrict rwlock)
 {
 	/* XXX - distinquish between shared/exclusive lock */
-	ReleaseSRWLockExclusive(&rwlock->lock); /* ReleaseSRWLockShared(rwlock); */
+	/* XXX - ReleaseSRWLockShared(rwlock); */
+	ReleaseSRWLockExclusive(&rwlock->lock);
 	return 0;
 }
 
@@ -312,9 +310,8 @@ pthread_cond_wait(pthread_cond_t *restrict cond,
 int
 pthread_once(pthread_once_t *once, void (*func)(void))
 {
-	if (!_InterlockedCompareExchange(once, 1, 0)) {
+	if (!_InterlockedCompareExchange(once, 1, 0))
 		func();
-	}
 	return 0;
 }
 

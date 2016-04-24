@@ -132,9 +132,9 @@ test_nontx_macros(PMEMobjpool *pop)
 void
 test_tx(PMEMobjpool *pop)
 {
-	PMEMoid root = pmemobj_root(pop, sizeof(struct myroot));
+	PMEMoid root = pmemobj_root(pop, sizeof (struct myroot));
 	TX_BEGIN(pop) {
-		pmemobj_tx_add_range(root, offsetof (struct myroot, obj),
+		pmemobj_tx_add_range(root, offsetof(struct myroot, obj),
 					sizeof (struct myroot));
 		struct myroot *rootp = (struct myroot *)pmemobj_direct(root);
 		rootp->obj.oid = pmemobj_tx_zalloc(sizeof (struct myobj), 6);
@@ -170,7 +170,7 @@ test_tx_macros(PMEMobjpool *pop)
 void
 test_root(PMEMobjpool *pop)
 {
-	TOID(struct myroot) root = pmemobj_root(pop, sizeof(struct myroot));
+	TOID(struct myroot) root = pmemobj_root(pop, sizeof (struct myroot));
 	size_t rs = pmemobj_root_size(pop);
 	printf("root size = %zu\n", rs);
 	strncpy(D_RW(root)->buf, "I'm root object", sizeof (D_RW(root)->buf));
@@ -180,7 +180,7 @@ test_root(PMEMobjpool *pop)
 void
 test_root(PMEMobjpool *pop)
 {
-	PMEMoid root = pmemobj_root(pop, sizeof(struct myroot));
+	PMEMoid root = pmemobj_root(pop, sizeof (struct myroot));
 	size_t rs = pmemobj_root_size(pop);
 	printf("root size = %zu\n", rs);
 	struct myroot *rootp = pmemobj_direct(root);
