@@ -34,7 +34,8 @@
 # XXX - integrate with VS projects and execute for each build
 #
 
-$rootdir = "..\.."
+$scriptdir = Split-Path -Parent $PSCommandPath
+$rootdir = $scriptdir + "\..\.."
 $cstyle = $rootdir + "\utils\cstyle"
 $checkdir = $rootdir
 
