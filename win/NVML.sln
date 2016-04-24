@@ -139,6 +139,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "log_basic", "test\log_basic
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "liblinux", "liblinux\liblinux.vcxproj", "{B3FF772D-F2FF-4E6E-ABD8-763407BB6A5C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utils", "utils", "{F8CCA5AE-2D75-4C79-BEAB-2588CD5956C8}"
+	ProjectSection(SolutionItems) = preProject
+		..\utils\cstyle = ..\utils\cstyle
+		utils\CSTYLE.ps1 = utils\CSTYLE.ps1
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -286,5 +292,6 @@ Global
 		{3CF270CD-0F56-48E3-AD84-82F369C568BF} = {77918E36-68AA-4F9B-ACD3-646E45C3AAB2}
 		{FBB77433-639E-42DC-9355-EA94CAE294D2} = {77918E36-68AA-4F9B-ACD3-646E45C3AAB2}
 		{B3FF772D-F2FF-4E6E-ABD8-763407BB6A5C} = {853D45D8-980C-4991-B62A-DAC6FD245402}
+		{F8CCA5AE-2D75-4C79-BEAB-2588CD5956C8} = {853D45D8-980C-4991-B62A-DAC6FD245402}
 	EndGlobalSection
 EndGlobal
