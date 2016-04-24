@@ -31,7 +31,7 @@
  */
 
 /*
- * platform.h -- dirty hacks to compile linux code on windows
+ * platform.h -- dirty hacks to compile linux code on Windows
  */
 
 #pragma once
@@ -51,7 +51,6 @@ typedef long _off_t; /* DO NOT override _off_t definition !!! */
 #include <malloc.h>
 
 
-
 #define	PATH_MAX MAX_PATH
 #define	__thread __declspec(thread)
 #define	__attribute__(a)
@@ -67,6 +66,9 @@ typedef long long int ssize_t;
 typedef int sigset_t;
 typedef int DIR;
 
+
+/* XXX - dummy */
+#define	__builtin_constant_p(cnd) 0
 
 __inline int
 __builtin_clzll(uint64_t val)
@@ -155,7 +157,7 @@ int posix_fallocate(int fd, off_t offset, off_t size);
 
 
 /*
- * helper macros for library constructor/destructor functions declaration
+ * helper macros for library cotor/dtor function declarations
  */
 #define	MSVC_CONSTR(func) \
 void func(void); \
