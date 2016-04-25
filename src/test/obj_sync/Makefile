@@ -37,7 +37,7 @@ vpath %.c ../../libpmemobj
 vpath %.c ../../common
 
 TARGET = obj_sync
-OBJS = obj_sync.o sync.o util.o out.o
+OBJS = obj_sync.o sync.o util.o util_os.o out.o
 LIBS = -lrt
 
 out.o: CFLAGS += -DSRCVERSION=\"utversion\"

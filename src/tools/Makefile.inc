@@ -126,7 +126,7 @@ ifeq ($(TOOLS_COMMON), y)
 vpath %.c $(TOP)/src/common
 vpath %.c $(TOP)/src/tools/pmempool
 
-OBJS += common.o output.o util.o set.o
+OBJS += common.o output.o util.o util_os.o set.o
 CFLAGS += -I$(TOP)/src/common
 CFLAGS += -I$(TOP)/src/libpmemlog
 CFLAGS += -I$(TOP)/src/libpmemblk

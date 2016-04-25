@@ -60,6 +60,7 @@ SRC=pmembench.c\
     benchmark_time.c\
     benchmark_worker.c\
     util.c\
+    util_os.c\
     out.c\
     set.c\
     clo.c\

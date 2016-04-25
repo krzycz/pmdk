@@ -37,7 +37,7 @@ vpath %.c ../../libpmemobj
 vpath %.c ../../common
 
 TARGET = obj_lane
-OBJS = obj_lane.o cuckoo.o lane.o util.o out.o
+OBJS = obj_lane.o cuckoo.o lane.o util.o util_os.o out.o
 
 LIBPMEM=y
 

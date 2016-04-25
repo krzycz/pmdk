@@ -36,10 +36,10 @@
 vpath %.c ../../common
 vpath %.h ../../common
 TARGET = util_poolset_parse
-OBJS = util_poolset_parse.o util.o set.o out.o
+OBJS = util_poolset_parse.o util.o util_os.o set.o out.o
 
 out.o: CFLAGS += -DDEBUG -DSRCVERSION=\"utversion\"
-util.o: CFLAGS += -DDEBUG
+util.o util_os.o: CFLAGS += -DDEBUG
 set.o: CFLAGS += -DDEBUG
 
 LIBPMEM=y
@@ -48,6 +48,6 @@ include ../Makefile.inc
 INCS += -I../../common
 
 util_poolset_parse.o: util_poolset_parse.c util.h
-util.o: util.c util.h
+util.o util_os.o: util.c util.h
 set.o: set.c util.h
 out.o: out.c out.h

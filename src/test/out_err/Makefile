@@ -37,7 +37,7 @@ vpath %.c ../../common
 vpath %.h ../../common
 
 TARGET = out_err
-OBJS = out_err.o out.o util.o
+OBJS = out_err.o out.o util.o util_os.o
 
 out.o: CFLAGS += -DSRCVERSION=\"utversion\"
 

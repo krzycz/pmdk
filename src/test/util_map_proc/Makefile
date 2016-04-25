@@ -36,7 +36,7 @@
 vpath %.c ../../common
 vpath %.h ../../common
 TARGET = util_map_proc
-OBJS = util_map_proc.o util.o out.o
+OBJS = util_map_proc.o util.o util_os.o out.o
 
 out.o: CFLAGS += -DSRCVERSION=\"utversion\"
 

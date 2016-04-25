@@ -38,10 +38,10 @@ vpath %.c ../../common
 vpath %.h ../../common
 
 TARGET = util_poolset_size
-OBJS = util_poolset_size.o util.o set.o out.o
+OBJS = util_poolset_size.o util.o util_os.o set.o out.o
 
 out.o: CFLAGS += -DDEBUG -DSRCVERSION=\"utversion\"
-util.o: CFLAGS += -DDEBUG
+util.o util_os.o: CFLAGS += -DDEBUG
 set.o: CFLAGS += -DDEBUG
 
 LIBPMEM=y

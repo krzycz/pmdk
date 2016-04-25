@@ -36,7 +36,7 @@
 vpath %.c ../../common
 
 TARGET = obj_realloc
-OBJS = obj_realloc.o util.o out.o
+OBJS = obj_realloc.o util.o util_os.o out.o
 
 LIBPMEM=y
 LIBPMEMOBJ=y
