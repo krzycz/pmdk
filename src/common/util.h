@@ -124,13 +124,6 @@ struct arch_flags {
 #define	POOL_HDR_UUID_STR_LEN	37 /* uuid string length */
 #define	POOL_HDR_UUID_GEN_FILE	"/proc/sys/kernel/random/uuid"
 
-#ifdef WIN32
-#ifdef uuid_t
-#undef uuid_t
-#endif
-#endif
-
-
 typedef unsigned char uuid_t[POOL_HDR_UUID_LEN]; /* 16 byte binary uuid value */
 
 struct pool_hdr {
@@ -270,9 +263,14 @@ int util_parse_size(const char *str, size_t *sizep);
 
 
 #ifndef WIN32
+
 #define	COMPILE_ERROR_ON(cond) ((void)sizeof (char[(cond) ? -1 : 1]))
+
 #else
+
+/* XXX - can't be done with C_ASSERT() */
 #define	COMPILE_ERROR_ON(cond)
+
 #endif
 
 /* setbit macro substitution which properly deals with types */
