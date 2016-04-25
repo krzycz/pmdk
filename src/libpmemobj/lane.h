@@ -99,10 +99,6 @@ struct lane_info {
 
 extern struct section_operations *Section_ops[MAX_LANE_SECTION];
 
-extern struct section_operations allocator_ops;
-extern struct section_operations list_ops;
-extern struct section_operations transaction_ops;
-
 void lane_info_boot(void);
 void lane_info_destroy(void);
 
@@ -115,6 +111,17 @@ void lane_hold(PMEMobjpool *pop, struct lane_section **section,
 	enum lane_section_type type);
 void lane_release(PMEMobjpool *pop);
 
+#ifndef WIN32
+
 #define	SECTION_PARM(n, ops)\
 __attribute__((constructor)) static void _section_parm_##n(void)\
 { Section_ops[n] = ops; }
+
+#else
+
+#define	SECTION_PARM(n, ops)\
+static void _section_parm_##n(void)\
+{ Section_ops[n] = ops; }\
+MSVC_CONSTR(_section_parm_##n)
+
+#endif
