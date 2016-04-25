@@ -36,6 +36,8 @@
 
 extern unsigned long Pagesize;
 
+extern int Mmap_no_random;
+extern void *Mmap_hint;
 
 /*
  * overridable names for malloc & friends used by this library
