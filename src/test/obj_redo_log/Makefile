@@ -37,7 +37,7 @@ vpath %.c ../../libpmemobj
 vpath %.c ../../common
 
 TARGET = obj_redo_log
-OBJS = obj_redo_log.o redo.o util.o out.o
+OBJS = obj_redo_log.o redo.o util.o util_os.o out.o
 
 out.o: CFLAGS += -DSRCVERSION=\"utversion\"
 

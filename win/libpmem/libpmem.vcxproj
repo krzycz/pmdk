@@ -24,6 +24,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Static-Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\src\pthread.c" />
+    <ClCompile Include="..\src\util_os.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\common\out.h" />

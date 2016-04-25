@@ -32,6 +32,9 @@
     <ClCompile Include="..\..\src\common\cpu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\util_os.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\common\out.h">

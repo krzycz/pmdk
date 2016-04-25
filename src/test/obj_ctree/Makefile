@@ -37,7 +37,7 @@ vpath %.c ../../libpmemobj
 vpath %.c ../../common
 
 TARGET = obj_ctree
-OBJS = obj_ctree.o ctree.o util.o out.o
+OBJS = obj_ctree.o ctree.o util.o util_os.o out.o
 
 LIBPMEM=y
 

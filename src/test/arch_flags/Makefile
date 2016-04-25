@@ -35,11 +35,11 @@
 #
 vpath %.c ../../common
 TARGET = arch_flags
-OBJS = arch_flags.o util.o out.o
+OBJS = arch_flags.o util.o util_os.o out.o
 
 include ../Makefile.inc
 INCS += -I../../common
 LDFLAGS += -Wl,--wrap=open
 
 out.o: CFLAGS += -DDEBUG -DSRCVERSION=\"utversion\"
-util.o: CFLAGS += -DDEBUG
+util.o util_os.o: CFLAGS += -DDEBUG

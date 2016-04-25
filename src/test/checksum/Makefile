@@ -37,10 +37,10 @@ vpath %.c ../../common
 vpath %.h ../.. ../../include
 vpath %.h ../.. ../../common
 TARGET = checksum
-OBJS = checksum.o util.o out.o
+OBJS = checksum.o util.o util_os.o out.o
 
 out.o: CFLAGS += -DSRCVERSION=\"utversion\"
-util.o: CFLAGS += -DDEBUG
+util.o util_os.o: CFLAGS += -DDEBUG
 
 include ../Makefile.inc
 INCS += -I../../include -I../../common/

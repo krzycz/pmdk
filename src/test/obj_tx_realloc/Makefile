@@ -37,7 +37,7 @@ vpath %.c ../../libpmemobj
 vpath %.c ../../common
 
 TARGET = obj_tx_realloc
-OBJS = obj_tx_realloc.o util.o out.o
+OBJS = obj_tx_realloc.o util.o util_os.o out.o
 
 LIBPMEM=y
 LIBPMEMOBJ=y
