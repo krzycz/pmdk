@@ -36,9 +36,12 @@
 
 #pragma once
 
-/* use 64-bit off_t */
-typedef long long off_t;
-typedef long _off_t; /* DO NOT override _off_t definition !!! */
+/*
+ * Define off_t before windows.h is included!!!
+ * XXX - make sure it has no side-effects
+ */
+typedef long long off_t;	/* use 64-bit off_t */
+typedef long _off_t;		/* DO NOT override _off_t definition !!! */
 #define	_OFF_T_DEFINED
 
 #include <windows.h>
@@ -50,6 +53,10 @@ typedef long _off_t; /* DO NOT override _off_t definition !!! */
 #include <sys/types.h>
 #include <malloc.h>
 
+/* use uuid_t definition from util.h */
+#ifdef uuid_t
+#undef uuid_t
+#endif
 
 #define	PATH_MAX MAX_PATH
 #define	__thread __declspec(thread)
@@ -67,7 +74,7 @@ typedef int sigset_t;
 typedef int DIR;
 
 
-/* XXX - dummy */
+/* XXX - no equivalent in VC */
 #define	__builtin_constant_p(cnd) 0
 
 __inline int
