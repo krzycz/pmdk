@@ -53,6 +53,14 @@
 #include "out.h"
 #include "cpu.h"
 
+/* XXX - move arch-specific implementation to separate files */
+#if (defined(__x86_64__) || defined(__amd64__) ||\
+                        defined(_M_X64) || defined(_M_AMD64))
+#define ARCH_X86_64
+#endif
+
+#ifdef ARCH_X86_64
+
 #define EAX_IDX 0
 #define EBX_IDX 1
 #define ECX_IDX 2
@@ -186,3 +194,44 @@ is_cpu_clwb_present(void)
 
 	return ret;
 }
+
+#else /* ARCH_X86_64 */
+
+/*
+ * is_cpu_genuine_intel -- checks for genuine Intel CPU
+ */
+int
+is_cpu_genuine_intel(void)
+{
+	return 0;
+}
+
+/*
+ * is_cpu_clflush_present -- checks if CLFLUSH instruction is supported
+ */
+int
+is_cpu_clflush_present(void)
+{
+	return 0;
+}
+
+/*
+ * is_cpu_clflushopt_present -- checks if CLFLUSHOPT instruction is supported
+ */
+int
+is_cpu_clflushopt_present(void)
+{
+
+	return 0;
+}
+
+/*
+ * is_cpu_clwb_present -- checks if CLWB instruction is supported
+ */
+int
+is_cpu_clwb_present(void)
+{
+	return 0;
+}
+
+#endif /* ARCH_X86_64 */
