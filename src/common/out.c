@@ -55,15 +55,15 @@ static int Log_level;
 static FILE *Out_fp;
 static unsigned Log_alignment;
 
-#ifndef NO_LIBPTHREAD
-
-#define	MAXPRINT 8192	/* maximum expected log line */
-
 #ifndef WIN32
-#define	DIR_SEPARATOR '/'
+#define	DIR_SEPARATOR ('/')
 #else
 #define	DIR_SEPARATOR '\\'
 #endif
+
+#ifndef NO_LIBPTHREAD
+
+#define	MAXPRINT 8192	/* maximum expected log line */
 
 static pthread_once_t Last_errormsg_key_once = PTHREAD_ONCE_INIT;
 static pthread_key_t Last_errormsg_key;
