@@ -1,4 +1,4 @@
-﻿#
+#
 # Copyright 2015-2016, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ create_nonzeroed_file 128 8 $DIR\testfile1
 
 expect_normal_exit ..\..\x64\debug\blk_non_zero$EXESUFFIX 512 `
 $DIR\testfile1 c 0 e:1 r:1 e:2 w:2 r:2 z:3 e:3 r:3 e:4 z:4 r:4 `
-w:5 e:5 z:5 r:5	w:6 z:6 e:6 r:6
+w:5 e:5 z:5 r:5 w:6 z:6 e:6 r:6
 
 # check will print the appropriate pass/fail message
 check
