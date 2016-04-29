@@ -627,7 +627,7 @@ util_get_file_size(int fd)
 {
 #ifndef WIN32
 	struct stat stbuf;
-	if (fstat(part->fd, &stbuf) != 0) {
+	if (fstat(fd, &stbuf) != 0) {
 		ERR("!fstat");
 		return -1;
 	}
