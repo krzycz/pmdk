@@ -1,4 +1,4 @@
-#
+﻿#
 # Copyright 2015-2016, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# src/test/blk_non_zero/TEST1 -- unit test for
+# src/test/blk_non_zero/TEST4 -- unit test for
 # pmemblk_read/write/set_zero/set_error
 #
-$Env:UNITTEST_NAME = "blk_non_zero\TEST1"
-$Env:UNITTEST_NUM = "1"
-# XXX:  bash has a few calls to tools that we don't have on
+$Env:UNITTEST_NAME = "blk_non_zero\TEST4"
+$Env:UNITTEST_NUM = "4"
+# Pl TODO:  bash has a few calls to tools that we don't have on
 # windows (yet) that set PMEM_IS_PMEM and NON_PMEM_IS_PMEM based
 # on their outpute
 $Env:PMEM_IS_PMEM = $true
@@ -50,11 +50,16 @@ require_fs_type pmem non-pmem
 
 setup
 
-# single arena write case
+# mix writes with set_zero and set_error and check results
 create_nonzeroed_file 1024 $((824 * 1024)) $DIR\testfile1
 
 expect_normal_exit ..\..\x64\debug\blk_non_zero$EXESUFFIX 512 $DIR\testfile1 c 0 `
-w:0 r:1 r:0 w:1 r:0 r:1 r:2
+e:1 r:1 `
+e:2 w:2 r:2 `
+z:3 e:3 r:3 `
+e:4 z:4 r:4 `
+w:5 e:5 z:5 r:5 `
+w:6 z:6 e:6 r:6
 
 # check will print the appropriate pass/fail message
 check

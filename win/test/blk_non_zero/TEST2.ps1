@@ -1,4 +1,4 @@
-﻿#
+#
 # Copyright 2015-2016, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
 #
 $Env:UNITTEST_NAME = "blk_non_zero\TEST2"
 $Env:UNITTEST_NUM = "2"
-# Pl TODO:  bash has a few calls to tools that we don't have on
+# XXX:  bash has a few calls to tools that we don't have on
 # windows (yet) that set PMEM_IS_PMEM and NON_PMEM_IS_PMEM based
 # on their outpute
 $Env:PMEM_IS_PMEM = $true
@@ -56,7 +56,7 @@ create_nonzeroed_file 1024 $((824 * 1024)) $DIR\testfile1
 expect_normal_exit ..\..\x64\debug\blk_non_zero$EXESUFFIX 512 $DIR\testfile1 c 0 `
 w:0 w:1 w:2 w:3 w:4 r:4 r:3 r:2 r:1 r:0
 
-expect_normal_exit ..\..\x64\debug\blk_non_zero$EXESUFFI 512 $DIR/testfile1 o `
+expect_normal_exit ..\..\x64\debug\blk_non_zero$EXESUFFI 512 $DIR\testfile1 o `
 w:0 r:4 r:3 r:2 r:1 r:0 w:0 r:0
 
 # check will print the appropriate pass/fail message
