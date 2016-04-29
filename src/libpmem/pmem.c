@@ -216,7 +216,7 @@
 #include "out.h"
 #include "valgrind_internal.h"
 
-#ifndef WIN32
+#ifndef _WIN32
 /*
  * The x86 memory instructions are new enough that the compiler
  * intrinsic functions are not always available.  The intrinsic
@@ -526,7 +526,7 @@ is_pmem_never(const void *addr, size_t len)
 static int
 is_pmem_proc(const void *addr, size_t len)
 {
-#ifndef WIN32
+#ifndef _WIN32
 	const char *caddr = addr;
 
 	FILE *fp;
@@ -722,23 +722,13 @@ pmem_map_file(const char *path, size_t len, int flags, mode_t mode,
 			}
 		}
 	} else {
-#ifndef WIN32
-		struct stat stbuf;
-		if (fstat(fd, &stbuf) < 0) {
-#else
-		struct _stat64 stbuf;
-		if (_fstat64(fd, &stbuf) < 0) {
-#endif
-			ERR("!fstat %s", path);
-			goto err;
-		}
-		if (stbuf.st_size < 0) {
-			ERR("stat %s: negative size", path);
+		off_t size = util_get_file_size(fd);
+		if (size < 0) {
 			errno = EINVAL;
 			goto err;
 		}
 
-		len = (size_t)stbuf.st_size;
+		len = (size_t)size;
 	}
 
 	void *addr;
@@ -1339,7 +1329,7 @@ pmem_init(void)
 }
 
 
-#ifdef WIN32
+#ifdef _WIN32
 /*
  * libpmem constructor/destructor functions
  */

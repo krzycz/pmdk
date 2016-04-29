@@ -592,31 +592,21 @@ util_file_open(const char *path, size_t *size, size_t minsize, int flags)
 		if (size)
 			ASSERTeq(*size, 0);
 
-#ifndef WIN32
-		struct stat stbuf;
-		if (fstat(fd, &stbuf) < 0) {
-#else
-		struct _stat64 stbuf;
-		if (_fstat64(fd, &stbuf) < 0) {
-#endif
-			ERR("!fstat %s", path);
-			goto err;
-		}
-		if (stbuf.st_size < 0) {
-			ERR("stat %s: negative size", path);
+		off_t fsize = util_get_file_size(fd);
+		if (fsize < 0) {
 			errno = EINVAL;
 			goto err;
 		}
 
-		if ((size_t)stbuf.st_size < minsize) {
+		if ((size_t)fsize < minsize) {
 			ERR("size %zu smaller than %zu",
-					(size_t)stbuf.st_size, minsize);
+					(size_t)fsize, minsize);
 			errno = EINVAL;
 			goto err;
 		}
 
 		if (size)
-			*size = (size_t)stbuf.st_size;
+			*size = (size_t)fsize;
 	}
 
 	return fd;
@@ -627,4 +617,26 @@ err:
 	(void) close(fd);
 	errno = oerrno;
 	return -1;
+}
+
+/*
+ * util_get_file_size -- get size of the file in bytes
+ */
+off_t
+util_get_file_size(int fd)
+{
+#ifndef WIN32
+	struct stat stbuf;
+	if (fstat(part->fd, &stbuf) != 0) {
+		ERR("!fstat");
+		return -1;
+	}
+#else
+	struct _stat64 stbuf;
+	if (_fstat64(fd, &stbuf) != 0) {
+		ERR("!fstat");
+		return -1;
+	}
+#endif
+	return stbuf.st_size;
 }
