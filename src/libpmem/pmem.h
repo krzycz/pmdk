@@ -38,6 +38,6 @@
 #define	PMEM_LOG_LEVEL_VAR "PMEM_LOG_LEVEL"
 #define	PMEM_LOG_FILE_VAR "PMEM_LOG_FILE"
 
-extern unsigned long Pagesize;
+extern unsigned long long Pagesize;
 
 void pmem_init(void);

@@ -56,7 +56,7 @@
 #include "valgrind_internal.h"
 
 /* library-wide page size */
-unsigned long Pagesize;
+unsigned long long Pagesize;
 
 int Mmap_no_random;
 void *Mmap_hint;
