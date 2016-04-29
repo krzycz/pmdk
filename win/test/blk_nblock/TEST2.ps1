@@ -1,4 +1,4 @@
-﻿#
+#
 # Copyright 2015-2016, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
 #
 $Env:UNITTEST_NAME = "blk_nblock\TEST2"
 $Env:UNITTEST_NUM = "2"
-# Pl TODO:  bash has a few calls to tools that we don't have on
+# XXX:  bash has a few calls to tools that we don't have on
 # windows (yet) that set PMEM_IS_PMEM and NON_PMEM_IS_PMEM based
 # on their outpute
 $Env:PMEM_IS_PMEM = $true
@@ -51,8 +51,8 @@ create_poolset $DIR\testset1 1024:$DIR\testfile11:x
 create_poolset $DIR\testset2 1024:$DIR\testfile21:x 1024:$DIR\testfile22:x
 
 expect_normal_exit ..\..\x64\debug\blk_nblock$Env:EXESUFFIX `
-	512:$DIR\testset1 `
-	512:$DIR\testset2
+    512:$DIR\testset1 `
+    512:$DIR\testset2
 
 # check will print the appropriate pass/fail message
 check
