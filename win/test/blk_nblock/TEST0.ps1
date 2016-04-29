@@ -1,4 +1,4 @@
-﻿#
+#
 # Copyright 2015-2016, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
 #
 $Env:UNITTEST_NAME = "blk_nblock\TEST0"
 $Env:UNITTEST_NUM = "0"
-# Pl TODO:  bash has a few calls to tools that we don't have on
+# XXX:  bash has a few calls to tools that we don't have on
 # windows (yet) that set PMEM_IS_PMEM and NON_PMEM_IS_PMEM based
 # on their outpute
 $Env:PMEM_IS_PMEM = $true
@@ -44,10 +44,6 @@ $DIR = ""
 . ..\unittest\unittest.ps1
 
 require_fs_type "local"
-
-# PL TODO:  need to find eq of linux overcommit mem, runs out pretty quick
-# with this test on windows so larger tests are commented out below
-require_unlimited_vm
 
 setup
 
@@ -60,6 +56,10 @@ setup
 # These are holey files, so they actually don't take up
 # any significant space.
 #
+# If you run out of disk space you may have to comment
+# out some of these temp files.  Even though they are
+# sparse Windows still won't let you overcommit
+#
 create_holey_file 2 $DIR\testfile1
 create_holey_file 2048 $DIR\testfile2.512
 create_holey_file 2048 $DIR\testfile2.520
@@ -67,6 +67,12 @@ create_holey_file 2048 $DIR\testfile2.528
 create_holey_file 2048 $DIR\testfile2.4096
 create_holey_file 2048 $DIR\testfile2.4160
 create_holey_file 2048 $DIR\testfile2.4224
+#
+# all of the commented tests are likely
+# going to eat up more disk space than the
+# test env being used. This larger coverage is
+# provided on the linux side
+#
 #create_holey_file 536576 $DIR\testfile3.512
 #create_holey_file 536576 $DIR\testfile3.520
 #create_holey_file 536576 $DIR\testfile3.528
@@ -101,47 +107,47 @@ create_holey_file $MIN_POOL_SIZE $DIR\testfile7.4160
 create_holey_file $MIN_POOL_SIZE $DIR\testfile7.4224
 
 # should fail:
-#	512:$DIR\testfile1 (file is too small)
-#	4096:$DIR\testfile2.512 (bsize doesn't match pool)
+#   512:$DIR\testfile1 (file is too small)
+#   4096:$DIR\testfile2.512 (bsize doesn't match pool)
 expect_normal_exit ..\..\x64\debug\blk_nblock$Env:EXESUFFIX `
-	512:$DIR\testfile1 `
-	512:$DIR\testfile2.512 `
-	4096:$DIR\testfile2.512 `
-	520:$DIR\testfile2.520 `
-	528:$DIR\testfile2.528 `
-	4096:$DIR\testfile2.4096 `
-	4160:$DIR\testfile2.4160 `
-	#4224:$DIR\testfile2.4224 `
-	#512:$DIR\testfile3.512 `
-	#520:$DIR\testfile3.520 `
-	#528:$DIR\testfile3.528 `
-	#4096:$DIR\testfile3.4096 `
-	#4160:$DIR\testfile3.4160 `
-	#4224:$DIR\testfile3.4224 `
-	#512:$DIR\testfile4.512 `
-	#520:$DIR\testfile4.520 `
-	#528:$DIR\testfile4.528 `
-	#4096:$DIR\testfile4.4096 `
-	#4160:$DIR\testfile4.4160 `
-	#4224:$DIR\testfile4.4224 `
-	#512:$DIR\testfile5.512
-	#520:$DIR\testfile5.520 `
-	#528:$DIR\testfile5.528 `
-	#4096:$DIR\testfile5.4096 `
-	#4160:$DIR\testfile5.4160 `
-	#4224:$DIR\testfile5.4224 `
-	#512:$DIR\testfile6.512 `
-	#520:$DIR\testfile6.520 `
-	#528:$DIR\testfile6.528 `
-	#4096:$DIR\testfile6.4096 `
-	#4160:$DIR\testfile6.4160 `
-	#4224:$DIR\testfile6.4224 `
-	#512:$DIR\testfile7.512 `
-	#520:$DIR\testfile7.520 `
-	#528:$DIR\testfile7.528 `
-	#4096:$DIR\testfile7.4096 `
-	#4160:$DIR\testfile7.4160
-	#4224:$DIR\testfile7.4224 `
+    512:$DIR\testfile1 `
+    512:$DIR\testfile2.512 `
+    4096:$DIR\testfile2.512 `
+    520:$DIR\testfile2.520 `
+    528:$DIR\testfile2.528 `
+    4096:$DIR\testfile2.4096 `
+    4160:$DIR\testfile2.4160 `
+    #4224:$DIR\testfile2.4224 `
+    #512:$DIR\testfile3.512 `
+    #520:$DIR\testfile3.520 `
+    #528:$DIR\testfile3.528 `
+    #4096:$DIR\testfile3.4096 `
+    #4160:$DIR\testfile3.4160 `
+    #4224:$DIR\testfile3.4224 `
+    #512:$DIR\testfile4.512 `
+    #520:$DIR\testfile4.520 `
+    #528:$DIR\testfile4.528 `
+    #4096:$DIR\testfile4.4096 `
+    #4160:$DIR\testfile4.4160 `
+    #4224:$DIR\testfile4.4224 `
+    #512:$DIR\testfile5.512
+    #520:$DIR\testfile5.520 `
+    #528:$DIR\testfile5.528 `
+    #4096:$DIR\testfile5.4096 `
+    #4160:$DIR\testfile5.4160 `
+    #4224:$DIR\testfile5.4224 `
+    #512:$DIR\testfile6.512 `
+    #520:$DIR\testfile6.520 `
+    #528:$DIR\testfile6.528 `
+    #4096:$DIR\testfile6.4096 `
+    #4160:$DIR\testfile6.4160 `
+    #4224:$DIR\testfile6.4224 `
+    #512:$DIR\testfile7.512 `
+    #520:$DIR\testfile7.520 `
+    #528:$DIR\testfile7.528 `
+    #4096:$DIR\testfile7.4096 `
+    #4160:$DIR\testfile7.4160
+    #4224:$DIR\testfile7.4224 `
 
 # check will print the appropriate pass/fail message
 check

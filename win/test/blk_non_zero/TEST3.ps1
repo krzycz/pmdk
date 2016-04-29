@@ -29,11 +29,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# src/test/blk_non_zero/TEST1 -- unit test for
+# src/test/blk_non_zero/TEST2 -- unit test for
 # pmemblk_read/write/set_zero/set_error
 #
-$Env:UNITTEST_NAME = "blk_non_zero\TEST1"
-$Env:UNITTEST_NUM = "1"
+$Env:UNITTEST_NAME = "blk_non_zero\TEST3"
+$Env:UNITTEST_NUM = "3"
 # XXX:  bash has a few calls to tools that we don't have on
 # windows (yet) that set PMEM_IS_PMEM and NON_PMEM_IS_PMEM based
 # on their outpute
@@ -50,11 +50,16 @@ require_fs_type pmem non-pmem
 
 setup
 
-# single arena write case
+# mix writes with set_zero and set_error and check results
 create_nonzeroed_file 1024 $((824 * 1024)) $DIR\testfile1
 
 expect_normal_exit ..\..\x64\debug\blk_non_zero$EXESUFFIX 512 $DIR\testfile1 c 0 `
-w:0 r:1 r:0 w:1 r:0 r:1 r:2
+w:100 w:200 w:300 w:400 `
+r:100 r:200 r:300 r:400 `
+w:100 z:200 w:300 z:400 `
+r:100 r:200 r:300 r:400 `
+e:100 w:200 e:300 w:400 `
+r:100 r:200 r:300 r:400
 
 # check will print the appropriate pass/fail message
 check
