@@ -38,9 +38,9 @@
 [CmdletBinding(PositionalBinding=$false)]
 Param(
     [alias("n")]
-    [System.String]$dryrun = "0",
+    $dryrun = "0",
     [alias("b")]
-    [System.String]$buildtype = "all",
+    $buildtype = "all",
     [alias("t")]
     $testtype = "check",
     [alias("f")]
@@ -145,7 +145,6 @@ function usage {
 function runtest {
     $Env:UNITTEST_QUIET = 1
     sv -Name testName $args[0]
-    cd $testName
 
     # setup the timeout for seconds (default)
     [int64]$timeval = $time.Substring(0,$time.length-1)
@@ -170,14 +169,16 @@ function runtest {
     if ($builds -eq "all") {
         $builds = "debug nondebug static-debug static-nondebug"
     }
-    sv -Name runscripts $testfile
-    if ($runscripts -eq "all") {
-        $runscripts = ""
-        Get-ChildItem './TEST*.ps1' | % {
-            if (-Not (Test-Path $testName)) {
-                $runscripts += $_.Name + " "
-            }
-        }
+
+    cd $testName
+    if ($testfile -eq "all") {
+        sv -Name dirCheck ".\TEST*.ps1"
+    } else {
+        sv -Name dirCheck "..\$testName\TEST*.ps1"
+    }
+    sv -Name runscripts ""
+    Get-ChildItem $dirCheck | % {
+        $runscripts += $_.Name + " "
     }
 
     $runscripts = $runscripts.trim()
@@ -299,7 +300,7 @@ if ($testfile -eq "all") {
         }
     }
 } else {
-    ForEach ($test in $testfile) {
+    ForEach ($test in $testfile.split(" ").trim()) {
         runtest $test
     }
 }
