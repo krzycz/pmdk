@@ -203,13 +203,6 @@ function create_poolset {
 
     sv -Name psfile $args[0]
     echo "PMEMPOOLSET" | out-file -encoding ASCII $psfile
-    # TODO remove once all working, clearing for PS_ISE during debug
-    rv cmd -ErrorAction SilentlyContinue
-    rv fparms -ErrorAction SilentlyContinue
-    rv fsize -ErrorAction SilentlyContinue
-    rv fpath -ErrorAction SilentlyContinue
-    rv asize -ErrorAction SilentlyContinue
-    rv mode -ErrorAction SilentlyContinue
      
     for ($i=1;$i -lt $args.count;$i++) {
         if ($args[$i] -eq "R" -Or $args[$i] -eq 'r') {
@@ -220,7 +213,7 @@ function create_poolset {
         sv -Name fparms ($cmd.Split("{:}"))
         sv -Name fsize $fparms[0]       
 
-        # PL TODO: unclear how to follow a symlink
+        # XXX: unclear how to follow a symlink
         # like linux "fpath=`readlink -mn ${fparms[1]}`" but I've not tested
         # that it works with a symlink or shortcut
         sv -Name fpath $fparms[1]
@@ -250,7 +243,7 @@ function create_poolset {
         }
     } # for args
 
-    # PL TODO: didn't convert chmod
+    # XXX: didn't convert chmod
     #	if [ $mode ]; then
     #	    chmod $mode $fpath
 	#	fi
@@ -263,10 +256,10 @@ function create_poolset {
 # expect_normal_exit -- run a given command, expect it to exit 0
 #
 function expect_normal_exit {
-    #PL TODO: add memcheck eq checks for windows once we get one
+    #XXX: add memcheck eq checks for windows once we get one
     # if [ "$RUN_MEMCHECK" ]; then...
 
-    #PL TODO:  bash sets up LD_PRELOAD and other gcc options here
+    #XXX:  bash sets up LD_PRELOAD and other gcc options here
     # that we can't do, investigating how to address API hooking...
 
     [string]$expression =  @($Args)
@@ -287,7 +280,7 @@ function expect_normal_exit {
             Write-Error "$Env:UNITTEST_NAME $msg"
         }
 
-        # Pl TODO: if we impement a memcheck thing...
+        # XXX: if we impement a memcheck thing...
         # if [ "$RUN_MEMCHECK" ]; then
 
         dump_last_n_lines out$Env:UNITTEST_NUM.log
@@ -298,11 +291,11 @@ function expect_normal_exit {
 		dump_last_n_lines $Env:VMEM_LOG_FILE
 		dump_last_n_lines $Env:VMMALLOC_LOG_FILE
 
-        #PL TODO:  bash just has a one-liner "false" here, does that
+        #XXX:  bash just has a one-liner "false" here, does that
         # set the exit code?
     }
 
-    # Pl TODO: if we impement a memcheck thing... set some env vars here
+    # XXX: if we impement a memcheck thing... set some env vars here
     
 }
 
@@ -310,7 +303,7 @@ function expect_normal_exit {
 # expect_abnormal_exit -- run a given command, expect it to exit non-zero
 #
 function expect_abnormal_exit {
-    #PL TODO:  bash sets up LD_PRELOAD and other gcc options here
+    #XXX:  bash sets up LD_PRELOAD and other gcc options here
     # that we can't do, investigating how to address API hooking...
 
     [string]$expression =  @($Args)
@@ -321,7 +314,7 @@ function expect_abnormal_exit {
     if ($ret) {
         sv -Name msg "succeeded"
         Write-Error "$Env:UNITTEST_NAME command $msg unexpectedly."
-        #PL TODO:  bash just has a one-liner "false" here, does that
+        #XXX:  bash just has a one-liner "false" here, does that
         # set the exit code?
     }
 }
@@ -330,7 +323,7 @@ function expect_abnormal_exit {
 # check_pool -- run pmempool check on specified pool file
 #
 function check_pool {
-    # PL TODO - - tool not available on windows yet
+    # XXX - - tool not available on windows yet
     Write-Error "function check_pool() Not yet implemented"
 }
 
@@ -338,7 +331,7 @@ function check_pool {
 # check_pools -- run pmempool check on specified pool files
 #
 function check_pools {
-    # PL TODO - tool not available on windows yet
+    # XXX - tool not available on windows yet
     Write-Error "function check_pools() Not yet implemented"
 }
 
@@ -349,17 +342,14 @@ function check_pools {
 # - overcommit_memory enabled (/proc/sys/vm/overcommit_memory is 0 or 1)
 # - unlimited virtual memory (ulimit -v is unlimited)
 #
-# PL TODO: don't think we can do this w/Windows, need to check
-#
 function require_unlimited_vm {
 	Write-Host "$Env:UNITTEST_NAME: SKIP required: overcommit_memory enabled and unlimited virtual memory"
-    #exit 0
 }
 
 #
 # require_no_superuser -- require user without superuser rights
 #
-# PL TODO: not sure how to translate
+# XXX: not sure how to translate
 #
 function require_no_superuser {
 	Write-Host "$Env:UNITTEST_NAME: SKIP required: run without superuser rightsy"
@@ -374,7 +364,7 @@ function require_test_type() {
         if ($args[$i] -eq $Env:TEST) {
             return
         }
-        #PL TODO look at the bash code w/someone and confirm the logic here
+        #XXX look at the bash code w/someone and confirm the logic here
         if (-Not (Test-Path Env:UNITTEST_QUIET)) {
             echo "$Env:UNITTEST_NAME: SKIP test-type $TEST ($* required)"
         } 
@@ -390,7 +380,7 @@ function require_build_type {
         if ($args[$i] -eq $Env:BUILD) {
             return
         }
-        #PL TODO look at the bash code w/someone and confirm the logic here
+        #XXX look at the bash code w/someone and confirm the logic here
         if (-Not (Test-Path Env:UNITTEST_QUIET)) {
             echo "$Env:UNITTEST_NAME: SKIP build-type $Env:BUILD ($* required)"
         } 
@@ -402,14 +392,14 @@ function require_build_type {
 # require_pkg -- only allow script to continue if specified package exists
 #
 function require_pkg {
-    # PL TODO: placeholder for checking dependencies if we can
+    # XXX: placeholder for checking dependencies if we can
 }
 
 #
 # memcheck -- only allow script to continue when memcheck's settings match
 #
 function memcheck {
-    # PL TODO: placeholder
+    # XXX: placeholder
 }
 
 #
@@ -619,7 +609,7 @@ function check_layout {
 	sv -Name layout -Scope "Local" $args[0] 
 	sv -Name file -Scope "Local" ((Get-Location).path + "\" + $Args[1]) 
 
-    # Pl TODO: not fully tested
+    # XXX: not fully tested
     $stream = [System.IO.File]::OpenRead($file)
     $stream.Position = $LAYOUT_OFFSET
     $buff = New-Object Byte[] $LAYOUT_LEN
@@ -638,7 +628,7 @@ function check_layout {
 function check_arena {
 	sv -Name file -Scope "Local" ((Get-Location).path + "\" + $Args[0]) 
 
-    # Pl TODO: not fully tested
+    # XXX: not fully tested
     $stream = [System.IO.File]::OpenRead($file)
     $stream.Position = $ARENA_OFFSET
     $buff = New-Object Byte[] $ARENA_SIG_LEN
@@ -655,7 +645,7 @@ function check_arena {
 # dump_pool_info -- dump selected pool metadata and/or user data
 #
 function dump_pool_info {
-    #PL TODO: not yet implemented
+    #XXX: not yet implemented
     Write-Error "function dump_pool_info() not yet implemented"
 	# ignore selected header fields that differ by definition
 	#${PMEMPOOL}.static-nondebug info $* | sed -e "/^UUID/,/^Checksum/d"
@@ -713,7 +703,7 @@ function setup {
 	# fs type "any" must be explicitly enabled
 	if ($Env:FS -eq "any" -and $req_fs_type -ne "1") { exit 0 }
    
-    # PL TODO: don't think we have a memcheck eq for windows yet but
+    # XXX: don't think we have a memcheck eq for windows yet but
     # will leave the logic in here in case we find something to use
     # that we can flip on/off with a flag
 	if ($MEMCHECK -eq "force-enable") { $Env:RUN_MEMCHECK = 1 }
@@ -724,7 +714,7 @@ function setup {
 		sv -Name MCSTR ""
 	}
 
-	Write-Host "$UNITTEST_NAME : SETUP ($TEST/$REAL_FS/$BUILD$MCSTR)"
+	Write-Host "$UNITTEST_NAME : SETUP ($Env:TEST\$REAL_FS\$Env:BUILD$MCSTR)"
 
 	rm -Force check_pool_${BUILD}_${UNITTEST_NUM}.log -ErrorAction SilentlyContinue
 
@@ -787,9 +777,9 @@ if (-Not ($TEST_LD_LIBRARY_PATH)) {
 #
 # When running static binary tests, append the build type to the binary
 #
-switch -wildcard ($Env:BUILD) {
-    'static-*' {$Env:EXESUFFIX = '.' + $Env:BUILD}
-}
+#switch -wildcard ($Env:BUILD) {
+#    'static-*' {$Env:EXESUFFIX = '.' + $Env:BUILD}
+#}
 
 #
 # The variable DIR is constructed so the test uses that directory when
@@ -852,7 +842,7 @@ if ($DIR) {
     } # switch
 }
 
-# PL TODO REMOVE THIS WHEN ITS ALL WORKING
+# XXX REMOVE THIS WHEN ITS ALL WORKING
 if (-Not ($DIR)) {
         Write-Error -Message 'DIR does not exist' 
         exit 1 
