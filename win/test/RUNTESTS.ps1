@@ -148,7 +148,7 @@ function runtest {
 
     # setup the timeout for seconds (default)
     [int64]$timeval = $time.Substring(0,$time.length-1)
-    if ($time -match “m”) {
+    if ($time -match "m") {
         [int64]$time = $timeval * 60
     } ElseIf ($time -eq "h") {
         [int64]$time = $timeval * 60 * 60
@@ -156,7 +156,7 @@ function runtest {
         [int64]$time = $timeval * 60 * 60 * 24
     } Else {
         [int64]$time = $timeval
-    } 
+    }
 
     #
     # make list of fs-types and build-types to test
@@ -262,7 +262,7 @@ if (-Not (Test-Path "testconfig.ps1")) {
 RUNTESTS: stopping because no testconfig.ps1 is found.
     to create one:
         cp testconfig.ps1.example testconfig.ps1
-    and edit testconfig.sh to describe the local machine configuration."
+    and edit testconfig.ps1 to describe the local machine configuration."
 }
 
 . .\testconfig.ps1
