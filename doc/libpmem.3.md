@@ -4,7 +4,7 @@ Content-Style: 'text/css'
 title: libpmem(3)
 ...
 
-[comment]: <>-2016 (Copyright 2016, Intel Corporation)
+[comment]: <> (Copyright 2016, Intel Corporation)
 
 [comment]: <> (Redistribution and use in source and binary forms, with or without)
 [comment]: <> (modification, are permitted provided that the following conditions)
