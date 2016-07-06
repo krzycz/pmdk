@@ -36,10 +36,13 @@
 
 include ../src/common.inc
 
-MANPAGES_3 = libpmem.3 libpmemblk.3 libpmemlog.3 libpmemobj.3 libpmempool.3 \
+MANPAGES_3 = libpmemblk.3 libpmemlog.3 libpmemobj.3 libpmempool.3 \
 	libvmem.3 libvmmalloc.3
 MANPAGES_1 = pmempool.1 pmempool-info.1 pmempool-create.1 \
 	pmempool-check.1 pmempool-dump.1 pmempool-rm.1 pmempool-convert.1
+
+MANPAGES_3_MD = libpmem.3.md
+MANPAGES_1_MD =
 
 ifeq ($(EXPERIMENTAL),y)
 MANPAGES_3 += librpmem.3
@@ -49,12 +52,17 @@ MANPAGES_3_NOINSTALL += librpmem.3
 MANPAGES_1_NOINSTALL += rpmemd.1
 endif
 
-MANPAGES = $(MANPAGES_1) $(MANPAGES_3)\
+MANPAGES_GROFF_3 = $(MANPAGES_3) $(MANPAGES_3_MD:.3.md=.3)
+MANPAGES_GROFF_1 = $(MANPAGES_1) $(MANPAGES_1_MD:.1.md=.1)
+
+MANPAGES = $(MANPAGES_GROFF_1) $(MANPAGES_GROFF_3)\
 	   $(MANPAGES_1_NOINSTALL) $(MANPAGES_3_NOINSTALL)
-TXTFILES = $(MANPAGES:=.txt)
+
 HTMLFILES = $(MANPAGES:=.html)
-GZFILES_1 = $(MANPAGES_1:=.gz)
-GZFILES_3 = $(MANPAGES_3:=.gz)
+TXTFILES = $(MANPAGES:=.txt)
+
+GZFILES_1 = $(MANPAGES_GROFF_1:=.gz)
+GZFILES_3 = $(MANPAGES_GROFF_3:=.gz)
 GZFILES_1_NOINSTALL = $(MANPAGES_1_NOINSTALL:=.gz)
 GZFILES_3_NOINSTALL = $(MANPAGES_3_NOINSTALL:=.gz)
 GZFILES = $(GZFILES_1) $(GZFILES_3)\
@@ -63,6 +71,7 @@ DOXYGEN_HTMLDIR=cpp_html
 
 MANPAGES_DESTDIR_1 = $(DESTDIR)$(man1dir)
 MANPAGES_DESTDIR_3 = $(DESTDIR)$(man3dir)
+
 DOCS_DESTDIR = $(DESTDIR)$(docdir)
 CPP_DOC_DIR ?= libpmemobj++-dev
 CPP_DOCS_DESTDIR = $(DOCS_DESTDIR)/$(CPP_DOC_DIR)
@@ -72,6 +81,8 @@ all: $(TXTFILES)
 %.txt: %
 	man ./$< > $@
 
+groff: $(MANPAGES_GROFF_3) $(MANPAGES_GROFF_1)
+
 doxygen_docs:
 	doxygen cppobj.Doxyfile
 
@@ -79,6 +90,16 @@ html: $(HTMLFILES) doxygen_docs
 
 %.html: %
 	groff -mandoc -Thtml ./$< > $@
+
+LICENSE: ../LICENSE
+	sed -n '1,/DAMAGE\./p' ./$< | sed 's/^/\.\\\"\ /g' > $@ 
+
+%.3: %.3.md LICENSE
+	./md2groff.sh ./$< LICENSE $(*F) 3 'NVM Library' 'version 1.0.0'
+	#cat ./$< | sed -n -e '1,6p' -e '/### NAME ###/,$$p' | pandoc -s -t man -o $@
+
+%.1: %.1.md LICENSE
+	cat ./$< | sed -n -e '1,6p' -e '/### NAME ###/,$$p' | pandoc -s -t man -o $@
 
 compress: $(GZFILES)
 
