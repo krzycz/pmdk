@@ -619,9 +619,9 @@ test_msync(int fd)
 	/* len == 0 - should succeed */
 	UT_ASSERTeq(msync(ptr1, 0, MS_SYNC), 0);
 
-	/* len == SIZE_MAX - should fail */
+	/* len == (SIZE_MAX - 4096) - should fail */
 	errno = 0;
-	UT_ASSERTne(msync(ptr1, SIZE_MAX, MS_SYNC), 0);
+	UT_ASSERTne(msync(ptr1, SIZE_MAX - 4096, MS_SYNC), 0);
 	UT_ASSERTeq(errno, ENOMEM);
 
 	/* unaligned pointer - should fail */
@@ -702,7 +702,6 @@ test_mprotect(int fd, int fd_ro)
 	errno = 0;
 	UT_ASSERTne(mprotect(ptr1, SIZE_MAX, PROT_READ), 0);
 	UT_ASSERTeq(errno, ENOMEM);
-	check_access(ptr1, MMAP_SIZE, PROT_READ);
 	UT_ASSERTeq(munmap(ptr1, MMAP_SIZE), 0);
 
 	/* change protection: R/O => R/W */
