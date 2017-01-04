@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016, Intel Corporation
+ * Copyright 2014-2017, Intel Corporation
  * Copyright (c) 2016, Microsoft Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -122,7 +122,6 @@ struct pool_attr {
 	const unsigned char *first_part_uuid;	/* first part uuid */
 	const unsigned char *prev_repl_uuid;	/* prev replica uuid */
 	const unsigned char *next_repl_uuid;	/* next replica uuid */
-	const unsigned char *user_flags;	/* user flags */
 };
 
 #define REP(set, r)\
@@ -149,14 +148,10 @@ int util_poolset_foreach_part(const char *path,
 size_t util_poolset_size(const char *path);
 
 int util_pool_create(struct pool_set **setp, const char *path, size_t poolsize,
-	size_t minsize, const char *sig,
-	uint32_t major, uint32_t compat, uint32_t incompat, uint32_t ro_compat,
-	unsigned *nlanes, int can_have_rep);
+	const struct pool_hdr_template *ht, unsigned *nlanes, int can_have_rep);
 int util_pool_create_uuids(struct pool_set **setp, const char *path,
-	size_t poolsize, size_t minsize, const char *sig,
-	uint32_t major, uint32_t compat, uint32_t incompat, uint32_t ro_compat,
-	unsigned *nlanes, int can_have_rep,
-	int remote, struct pool_attr *poolattr);
+	size_t poolsize, const struct pool_hdr_template *ht, unsigned *nlanes,
+	int can_have_rep, int remote, struct pool_attr *poolattr);
 
 int util_part_open(struct pool_set_part *part, size_t minsize, int create);
 void util_part_fdclose(struct pool_set_part *part);
@@ -168,23 +163,19 @@ int util_unmap_part(struct pool_set_part *part);
 int util_unmap_parts(struct pool_replica *rep, unsigned start_index,
 	unsigned end_index);
 int util_header_create(struct pool_set *set, unsigned repidx, unsigned partidx,
-	const char *sig, uint32_t major, uint32_t compat, uint32_t incompat,
-	uint32_t ro_compat, const unsigned char *prev_repl_uuid,
-	const unsigned char *next_repl_uuid, const unsigned char *arch_flags);
+	const struct pool_hdr_template *ht, const unsigned char *prev_repl_uuid,
+	const unsigned char *next_repl_uuid);
 
 int util_map_hdr(struct pool_set_part *part, int flags, int rdonly);
 int util_unmap_hdr(struct pool_set_part *part);
 
 int util_pool_open_nocheck(struct pool_set *set, int rdonly);
 int util_pool_open(struct pool_set **setp, const char *path, int rdonly,
-	size_t minsize, const char *sig, uint32_t major, uint32_t compat,
-	uint32_t incompat, uint32_t ro_compat, unsigned *nlanes);
+	const struct pool_hdr_template *ht, unsigned *nlanes);
 int util_pool_open_remote(struct pool_set **setp, const char *path, int rdonly,
-	size_t minsize, char *sig, uint32_t *major,
-	uint32_t *compat, uint32_t *incompat, uint32_t *ro_compat,
+	struct pool_hdr_template *ht,
 	unsigned char *poolset_uuid, unsigned char *first_part_uuid,
-	unsigned char *prev_repl_uuid, unsigned char *next_repl_uuid,
-	unsigned char *arch_flags);
+	unsigned char *prev_repl_uuid, unsigned char *next_repl_uuid);
 
 void util_remote_init(void);
 void util_remote_fini(void);

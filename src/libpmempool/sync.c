@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -277,6 +277,20 @@ create_headers_for_broken_parts(struct pool_set *set, unsigned src_replica,
 {
 	LOG(3, "set %p, src_replica %u, set_hs %p", set, src_replica, set_hs);
 	struct pool_hdr *src_hdr = HDR(REP(set, src_replica), 0);
+
+	/* XXX */
+	struct pool_hdr_template ht = {
+		src_hdr->signature,
+		src_hdr->major,
+		src_hdr->compat_features,
+		src_hdr->incompat_features,
+		src_hdr->ro_compat_features,
+		0,
+		{ 0 }, /* arch flags - initialized below */
+	};
+
+	util_get_arch_flags(&ht.arch_flags);
+
 	for (unsigned r = 0; r < set_hs->nreplicas; ++r) {
 		/* skip unbroken replicas */
 		if (!replica_is_replica_broken(r, set_hs))
@@ -287,12 +301,8 @@ create_headers_for_broken_parts(struct pool_set *set, unsigned src_replica,
 			if (!replica_is_part_broken(r, p, set_hs))
 				continue;
 
-			if (util_header_create(set, r, p,
-					src_hdr->signature, src_hdr->major,
-					src_hdr->compat_features,
-					src_hdr->incompat_features,
-					src_hdr->ro_compat_features,
-					NULL, NULL, NULL) != 0) {
+			if (util_header_create(set, r, p, &ht,
+					NULL, NULL) != 0) {
 				LOG(1, "part headers create failed for"
 						" replica %u part %u", r, p);
 				errno = EINVAL;

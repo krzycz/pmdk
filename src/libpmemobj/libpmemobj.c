@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016, Intel Corporation
+ * Copyright 2014-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,8 @@ libpmemobj_init(void)
 			PMEMOBJ_MINOR_VERSION);
 	LOG(3, NULL);
 	obj_init();
+
+	util_get_arch_flags(&Obj_ht.arch_flags);
 }
 
 /*

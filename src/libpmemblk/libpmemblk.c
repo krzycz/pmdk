@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016, Intel Corporation
+ * Copyright 2014-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,6 +55,8 @@ libpmemblk_init(void)
 			PMEMBLK_LOG_FILE_VAR, PMEMBLK_MAJOR_VERSION,
 			PMEMBLK_MINOR_VERSION);
 	LOG(3, NULL);
+
+	util_get_arch_flags(&Blk_ht.arch_flags);
 }
 
 /*

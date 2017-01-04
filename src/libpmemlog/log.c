@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016, Intel Corporation
+ * Copyright 2014-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,6 +54,16 @@
 #include "mmap.h"
 #include "sys_util.h"
 #include "valgrind_internal.h"
+
+struct pool_hdr_template Log_ht = {
+	LOG_HDR_SIG,
+	LOG_FORMAT_MAJOR,
+	LOG_FORMAT_COMPAT,
+	LOG_FORMAT_INCOMPAT,
+	LOG_FORMAT_RO_COMPAT,
+	PMEMLOG_MIN_POOL,
+	{ 0 }, /* arch flags  - initialized by lib ctor */
+};
 
 /*
  * pmemlog_descr_create -- (internal) create log memory pool descriptor
@@ -170,10 +180,7 @@ pmemlog_create(const char *path, size_t poolsize, mode_t mode)
 
 	struct pool_set *set;
 
-	if (util_pool_create(&set, path, poolsize, PMEMLOG_MIN_POOL,
-			LOG_HDR_SIG, LOG_FORMAT_MAJOR,
-			LOG_FORMAT_COMPAT, LOG_FORMAT_INCOMPAT,
-			LOG_FORMAT_RO_COMPAT, NULL,
+	if (util_pool_create(&set, path, poolsize, &Log_ht, NULL,
 			REPLICAS_DISABLED) != 0) {
 		LOG(2, "cannot create pool or pool set");
 		return NULL;
@@ -235,10 +242,7 @@ pmemlog_open_common(const char *path, int cow)
 
 	struct pool_set *set;
 
-	if (util_pool_open(&set, path, cow, PMEMLOG_MIN_POOL,
-			LOG_HDR_SIG, LOG_FORMAT_MAJOR,
-			LOG_FORMAT_COMPAT, LOG_FORMAT_INCOMPAT,
-			LOG_FORMAT_RO_COMPAT, NULL) != 0) {
+	if (util_pool_open(&set, path, cow, &Log_ht, NULL) != 0) {
 		LOG(2, "cannot open pool or pool set");
 		return NULL;
 	}

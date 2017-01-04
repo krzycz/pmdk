@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2016, Intel Corporation
+ * Copyright 2015-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,12 @@
 const char *Open_path = "";
 off_t Fallocate_len = -1;
 size_t Is_pmem_len = 0;
+
+struct pool_hdr_template Pool_ht = {
+	SIG, 1, 0, 0, 0,
+	0, /* initialized in main() */
+	{ 0 }, /* arch flags  - initialized in main() */
+};
 
 /*
  * poolset_info -- (internal) dumps poolset info and checks its integrity
@@ -156,7 +162,8 @@ main(int argc, char *argv[])
 	struct pool_set *set;
 	int ret;
 
-	size_t minsize = strtoul(argv[2], &fname, 0);
+	Pool_ht.minsize = strtoul(argv[2], &fname, 0);
+	util_get_arch_flags(&Pool_ht.arch_flags);
 
 	for (int arg = 3; arg < argc; arg++) {
 		arg += mock_options(argv[arg]);
@@ -164,8 +171,8 @@ main(int argc, char *argv[])
 
 		switch (argv[1][0]) {
 		case 'c':
-			ret = util_pool_create(&set, fname, 0, minsize,
-				SIG, 1, 0, 0, 0, NULL, REPLICAS_ENABLED);
+			ret = util_pool_create(&set, fname, 0, &Pool_ht,
+				NULL, REPLICAS_ENABLED);
 			if (ret == -1)
 				UT_OUT("!%s: util_pool_create", fname);
 			else {
@@ -182,7 +189,7 @@ main(int argc, char *argv[])
 			break;
 		case 'o':
 			ret = util_pool_open(&set, fname, 0 /* rdonly */,
-				minsize, SIG, 1, 0, 0, 0, NULL);
+				&Pool_ht, NULL);
 			if (ret == -1)
 				UT_OUT("!%s: util_pool_open", fname);
 			else {

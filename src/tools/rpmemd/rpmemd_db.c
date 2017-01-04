@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -190,19 +190,15 @@ rpmemd_db_pool_create(struct rpmemd_db *db, const char *pool_desc,
 	pattr.first_part_uuid = attr->uuid;
 	pattr.prev_repl_uuid = attr->prev_uuid;
 	pattr.next_repl_uuid = attr->next_uuid;
-	pattr.user_flags = attr->user_flags;
+	/* pattr.user_flags = attr->user_flags; */
+	/* XXX */
 
-	ret = util_pool_create_uuids(&set, path,
-					0, RPMEM_MIN_POOL,
-					attr->signature,
-					attr->major,
-					attr->compat_features,
-					attr->incompat_features,
-					attr->ro_compat_features,
-					NULL,
-					REPLICAS_DISABLED,
-					POOL_REMOTE,
-					&pattr);
+	struct pool_hdr_template ht;
+	ht.minsize = RPMEM_MIN_POOL;
+	util_get_arch_flags(&ht.arch_flags);
+
+	ret = util_pool_create_uuids(&set, path, 0, &ht, NULL,
+			REPLICAS_DISABLED, POOL_REMOTE, &pattr);
 	if (ret) {
 		RPMEMD_LOG(ERR, "!cannot create pool set -- '%s'", path);
 		goto err_free_path;
@@ -261,21 +257,26 @@ rpmemd_db_pool_open(struct rpmemd_db *db, const char *pool_desc,
 		goto err_free_prp;
 	}
 
-	ret = util_pool_open_remote(&set, path, 0, RPMEM_MIN_POOL,
-					attr->signature,
-					&attr->major,
-					&attr->compat_features,
-					&attr->incompat_features,
-					&attr->ro_compat_features,
+	struct pool_hdr_template ht;
+	ht.minsize = RPMEM_MIN_POOL;
+
+	ret = util_pool_open_remote(&set, path, 0, &ht,
 					attr->poolset_uuid,
 					attr->uuid,
 					attr->prev_uuid,
-					attr->next_uuid,
-					attr->user_flags);
+					attr->next_uuid);
 	if (ret) {
 		RPMEMD_LOG(ERR, "!cannot open pool set -- '%s'", path);
 		goto err_free_path;
 	}
+
+	memcpy(attr->signature, &ht.signature, RPMEM_POOL_HDR_SIG_LEN);
+	attr->major = ht.major;
+	attr->compat_features = ht.compat_features;
+	attr->incompat_features = ht.incompat_features;
+	attr->ro_compat_features = ht.ro_compat_features;
+	attr->compat_features = ht.compat_features;
+	memcpy(attr->user_flags, &ht.arch_flags, sizeof(struct arch_flags));
 
 	/* mark as opened */
 	prp->pool_addr = set->replica[0]->part[0].addr;
@@ -356,19 +357,16 @@ rpmemd_db_pool_remove(struct rpmemd_db *db, const char *pool_desc,
 			goto err_free_path;
 		}
 	} else {
+		struct pool_hdr_template ht;
+		ht.minsize = RPMEM_MIN_POOL;
+		util_get_arch_flags(&ht.arch_flags);
+
 		struct rpmem_pool_attr attr;
-		ret = util_pool_open_remote(&set, path, 0,
-				RPMEM_MIN_POOL,
-				attr.signature,
-				&attr.major,
-				&attr.compat_features,
-				&attr.incompat_features,
-				&attr.ro_compat_features,
+		ret = util_pool_open_remote(&set, path, 0, &ht,
 				attr.poolset_uuid,
 				attr.uuid,
 				attr.prev_uuid,
-				attr.next_uuid,
-				attr.user_flags);
+				attr.next_uuid);
 		if (ret) {
 			RPMEMD_LOG(ERR, "!removing '%s' failed", path);
 			goto err_free_path;

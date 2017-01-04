@@ -53,12 +53,6 @@
     <ClCompile Include="..\..\libpmemblk\btt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\libpmemlog\log.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\libpmemlog\libpmemlog.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\libpmemobj\pvector.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -111,6 +105,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="transform.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libpmemlog\log.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libpmemlog\libpmemlog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

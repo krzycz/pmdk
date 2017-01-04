@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016, Intel Corporation
+ * Copyright 2014-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -576,8 +576,17 @@ util_poolset_map(const char *fname, struct pool_set **poolset, int rdonly)
 		return -1;
 	}
 
-	/* get minimum size based on pool type for util_pool_open */
-	size_t minsize = pmem_pool_get_min_size(type);
+	struct pool_hdr_template ht = {
+		hdr.signature,
+		hdr.major,
+		hdr.compat_features,
+		hdr.incompat_features,
+		hdr.ro_compat_features,
+		pmem_pool_get_min_size(type), /* min size based on pool type */
+		{ 0 } /* arch flags - initialized below */
+	};
+
+	util_get_arch_flags(&ht.arch_flags);
 
 	/*
 	 * Just use one thread - there is no need for multi-threaded access
@@ -590,11 +599,7 @@ util_poolset_map(const char *fname, struct pool_set **poolset, int rdonly)
 	 * from the first poolset file, these values are then compared with
 	 * the values from all headers of poolset files.
 	 */
-	if (util_pool_open(poolset, fname, rdonly, minsize,
-			hdr.signature, hdr.major,
-			hdr.compat_features,
-			hdr.incompat_features,
-			hdr.ro_compat_features, &nlanes)) {
+	if (util_pool_open(poolset, fname, rdonly, &ht, &nlanes)) {
 		outv_err("opening poolset failed\n");
 		return -1;
 	}

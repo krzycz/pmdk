@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016, Intel Corporation
+ * Copyright 2014-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,6 +50,16 @@
 
 static struct cuckoo *pools_ht; /* hash table used for searching by UUID */
 static struct ctree *pools_tree; /* tree used for searching by address */
+
+struct pool_hdr_template Obj_ht = {
+	OBJ_HDR_SIG,
+	OBJ_FORMAT_MAJOR,
+	OBJ_FORMAT_COMPAT,
+	OBJ_FORMAT_INCOMPAT,
+	OBJ_FORMAT_RO_COMPAT,
+	PMEMOBJ_MIN_POOL,
+	{ 0 }, /* arch flags  - initialized by lib ctor */
+};
 
 int _pobj_cache_invalidate;
 
@@ -1053,10 +1063,7 @@ pmemobj_create(const char *path, const char *layout, size_t poolsize,
 	 */
 	unsigned runtime_nlanes = OBJ_NLANES;
 
-	if (util_pool_create(&set, path, poolsize, PMEMOBJ_MIN_POOL,
-			OBJ_HDR_SIG, OBJ_FORMAT_MAJOR,
-			OBJ_FORMAT_COMPAT, OBJ_FORMAT_INCOMPAT,
-			OBJ_FORMAT_RO_COMPAT, &runtime_nlanes,
+	if (util_pool_create(&set, path, poolsize, &Obj_ht, &runtime_nlanes,
 			REPLICAS_ENABLED) != 0) {
 		LOG(2, "cannot create pool or pool set");
 		return NULL;
@@ -1264,10 +1271,7 @@ obj_open_common(const char *path, const char *layout, int cow, int boot)
 	 */
 	unsigned runtime_nlanes = OBJ_NLANES;
 
-	if (util_pool_open(&set, path, cow, PMEMOBJ_MIN_POOL,
-			OBJ_HDR_SIG, OBJ_FORMAT_MAJOR,
-			OBJ_FORMAT_COMPAT, OBJ_FORMAT_INCOMPAT,
-			OBJ_FORMAT_RO_COMPAT, &runtime_nlanes) != 0) {
+	if (util_pool_open(&set, path, cow, &Obj_ht, &runtime_nlanes) != 0) {
 		LOG(2, "cannot open pool or pool set");
 		return NULL;
 	}
@@ -1395,7 +1399,7 @@ err:
 	LOG(4, "error clean up");
 	int oerrno = errno;
 	if (set->remote)
-		pmemobj_cleanup_remote(pop);
+		obj_cleanup_remote(pop);
 	util_poolset_close(set, 0);
 	errno = oerrno;
 	return NULL;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016, Intel Corporation
+ * Copyright 2014-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,6 +55,8 @@ libpmemlog_init(void)
 			PMEMLOG_LOG_FILE_VAR, PMEMLOG_MAJOR_VERSION,
 			PMEMLOG_MINOR_VERSION);
 	LOG(3, NULL);
+
+	util_get_arch_flags(&Log_ht.arch_flags);
 }
 
 /*

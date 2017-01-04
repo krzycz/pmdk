@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016, Intel Corporation
+ * Copyright 2014-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,6 +55,16 @@
 #include "blk.h"
 #include "sys_util.h"
 #include "valgrind_internal.h"
+
+struct pool_hdr_template Blk_ht = {
+	BLK_HDR_SIG,
+	BLK_FORMAT_MAJOR,
+	BLK_FORMAT_COMPAT,
+	BLK_FORMAT_INCOMPAT,
+	BLK_FORMAT_RO_COMPAT,
+	PMEMBLK_MIN_POOL,
+	{ 0 }, /* arch flags  - initialized by lib ctor */
+};
 
 /*
  * lane_enter -- (internal) acquire a unique lane number
@@ -414,10 +424,7 @@ pmemblk_create(const char *path, size_t bsize, size_t poolsize,
 
 	struct pool_set *set;
 
-	if (util_pool_create(&set, path, poolsize, PMEMBLK_MIN_POOL,
-			BLK_HDR_SIG, BLK_FORMAT_MAJOR,
-			BLK_FORMAT_COMPAT, BLK_FORMAT_INCOMPAT,
-			BLK_FORMAT_RO_COMPAT, NULL,
+	if (util_pool_create(&set, path, poolsize, &Blk_ht, NULL,
 			REPLICAS_DISABLED) != 0) {
 		LOG(2, "cannot create pool or pool set");
 		return NULL;
@@ -466,7 +473,6 @@ err:
 	return NULL;
 }
 
-
 /*
  * pmemblk_open_common -- (internal) open a block memory pool
  *
@@ -483,10 +489,7 @@ pmemblk_open_common(const char *path, size_t bsize, int cow)
 
 	struct pool_set *set;
 
-	if (util_pool_open(&set, path, cow, PMEMBLK_MIN_POOL,
-			BLK_HDR_SIG, BLK_FORMAT_MAJOR,
-			BLK_FORMAT_COMPAT, BLK_FORMAT_INCOMPAT,
-			BLK_FORMAT_RO_COMPAT, NULL) != 0) {
+	if (util_pool_open(&set, path, cow, &Blk_ht, NULL) != 0) {
 		LOG(2, "cannot open pool or pool set");
 		return NULL;
 	}
