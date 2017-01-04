@@ -51,6 +51,8 @@ libpmemobj_init(void)
 			PMEMOBJ_MINOR_VERSION);
 	LOG(3, NULL);
 	obj_init();
+
+	util_get_arch_flags(&Obj_ht.arch_flags);
 }
 
 /*

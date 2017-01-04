@@ -55,6 +55,8 @@ libpmemlog_init(void)
 			PMEMLOG_LOG_FILE_VAR, PMEMLOG_MAJOR_VERSION,
 			PMEMLOG_MINOR_VERSION);
 	LOG(3, NULL);
+
+	util_get_arch_flags(&Log_ht.arch_flags);
 }
 
 /*

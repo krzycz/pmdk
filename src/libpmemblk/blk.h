@@ -83,3 +83,5 @@ struct pmemblk {
 
 /* data area starts at this alignment after the struct pmemblk above */
 #define BLK_FORMAT_DATA_ALIGN ((uintptr_t)4096)
+
+extern struct pool_hdr_template Blk_ht;

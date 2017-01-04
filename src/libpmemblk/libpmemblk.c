@@ -55,6 +55,8 @@ libpmemblk_init(void)
 			PMEMBLK_LOG_FILE_VAR, PMEMBLK_MAJOR_VERSION,
 			PMEMBLK_MINOR_VERSION);
 	LOG(3, NULL);
+
+	util_get_arch_flags(&Blk_ht.arch_flags);
 }
 
 /*

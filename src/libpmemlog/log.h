@@ -74,5 +74,7 @@ struct pmemlog {
 /* data area starts at this alignment after the struct pmemlog above */
 #define LOG_FORMAT_DATA_ALIGN ((uintptr_t)4096)
 
+extern struct pool_hdr_template Log_ht;
+
 void pmemlog_convert2h(struct pmemlog *plp);
 void pmemlog_convert2le(struct pmemlog *plp);

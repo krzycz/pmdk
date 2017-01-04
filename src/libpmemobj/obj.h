@@ -174,6 +174,8 @@ struct pmemobjpool {
 	char unused2[1590];
 };
 
+extern struct pool_hdr_template Obj_ht;
+
 /*
  * Stored in the 'size' field of oobh header, determines whether the object
  * is internal or not. Internal objects are skipped in pmemobj iteration

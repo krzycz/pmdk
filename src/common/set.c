@@ -1481,15 +1481,15 @@ err:
  */
 int
 util_header_create(struct pool_set *set, unsigned repidx, unsigned partidx,
-	const char *sig, uint32_t major, uint32_t compat, uint32_t incompat,
-	uint32_t ro_compat, const unsigned char *prev_repl_uuid,
-	const unsigned char *next_repl_uuid, const unsigned char *arch_flags)
+	const struct pool_hdr_template *ht, const unsigned char *prev_repl_uuid,
+	const unsigned char *next_repl_uuid)
 {
 	LOG(3, "set %p repidx %u partidx %u sig %.8s major %u "
 		"compat %#x incompat %#x ro_comapt %#x"
-		"prev_repl_uuid %p next_repl_uuid %p arch_flags %p",
-		set, repidx, partidx, sig, major, compat, incompat,
-		ro_compat, prev_repl_uuid, next_repl_uuid, arch_flags);
+		"prev_repl_uuid %p next_repl_uuid %p",
+		set, repidx, partidx, ht->signature, ht->major,
+		ht->compat_features, ht->incompat_features,
+		ht->ro_compat_features, prev_repl_uuid, next_repl_uuid);
 
 	struct pool_replica *rep = set->replica[repidx];
 
@@ -1504,11 +1504,11 @@ util_header_create(struct pool_set *set, unsigned repidx, unsigned partidx,
 	}
 
 	/* create pool's header */
-	memcpy(hdrp->signature, sig, POOL_HDR_SIG_LEN);
-	hdrp->major = major;
-	hdrp->compat_features = compat;
-	hdrp->incompat_features = incompat;
-	hdrp->ro_compat_features = ro_compat;
+	memcpy(hdrp->signature, ht->signature, POOL_HDR_SIG_LEN);
+	hdrp->major = ht->major;
+	hdrp->compat_features = ht->compat_features;
+	hdrp->incompat_features = ht->incompat_features;
+	hdrp->ro_compat_features = ht->ro_compat_features;
 
 	memcpy(hdrp->poolset_uuid, set->uuid, POOL_HDR_UUID_LEN);
 	memcpy(hdrp->uuid, PART(rep, partidx).uuid, POOL_HDR_UUID_LEN);
@@ -1535,20 +1535,9 @@ util_header_create(struct pool_set *set, unsigned repidx, unsigned partidx,
 
 	hdrp->crtime = (uint64_t)time(NULL);
 
-	if (!arch_flags) {
-		if (util_get_arch_flags(&hdrp->arch_flags)) {
-			ERR("Reading architecture flags failed");
-			errno = EINVAL;
-			return -1;
-		}
-	}
-
 	util_convert2le_hdr(hdrp);
 
-	if (arch_flags) {
-		memcpy(&hdrp->arch_flags, arch_flags,
-				sizeof(struct arch_flags));
-	}
+	memcpy(&hdrp->arch_flags, &ht->arch_flags, sizeof(struct arch_flags));
 
 	util_checksum(hdrp, sizeof(*hdrp), &hdrp->checksum, 1);
 
@@ -1563,12 +1552,13 @@ util_header_create(struct pool_set *set, unsigned repidx, unsigned partidx,
  */
 static int
 util_header_check(struct pool_set *set, unsigned repidx, unsigned partidx,
-	const char *sig, uint32_t major, uint32_t compat, uint32_t incompat,
-	uint32_t ro_compat)
+	const struct pool_hdr_template *ht)
 {
 	LOG(3, "set %p repidx %u partidx %u sig %.8s major %u "
 		"compat %#x incompat %#x ro_comapt %#x",
-		set, repidx, partidx, sig, major, compat, incompat, ro_compat);
+		set, repidx, partidx, ht->signature, ht->major,
+		ht->compat_features, ht->incompat_features,
+		ht->ro_compat_features);
 
 	struct pool_replica *rep = set->replica[repidx];
 
@@ -1585,15 +1575,16 @@ util_header_check(struct pool_set *set, unsigned repidx, unsigned partidx,
 	}
 
 	/* valid header found */
-	if (memcmp(hdr.signature, sig, POOL_HDR_SIG_LEN)) {
+	if (memcmp(hdr.signature, ht->signature, POOL_HDR_SIG_LEN)) {
 		ERR("wrong pool type: \"%.8s\"", hdr.signature);
 		errno = EINVAL;
 		return -1;
 	}
 
-	if (hdr.major != major) {
-		ERR("pool version %d (library expects %d)", hdr.major, major);
-		if (hdr.major < major) {
+	if (hdr.major != ht->major) {
+		ERR("pool version %d (library expects %d)",
+				hdr.major, ht->major);
+		if (hdr.major < ht->major) {
 			ERR("Please run the pmempool convert utility to "
 				"upgrade the pool.");
 		}
@@ -1601,7 +1592,7 @@ util_header_check(struct pool_set *set, unsigned repidx, unsigned partidx,
 		return -1;
 	}
 
-	if (util_check_arch_flags(&hdr.arch_flags)) {
+	if (util_check_arch_flags(&hdr.arch_flags, &ht->arch_flags)) {
 		ERR("wrong architecture flags");
 		errno = EINVAL;
 		return -1;
@@ -1643,7 +1634,8 @@ util_header_check(struct pool_set *set, unsigned repidx, unsigned partidx,
 
 	rep->part[partidx].rdonly = 0;
 
-	int retval = util_feature_check(&hdr, incompat, ro_compat, compat);
+	int retval = util_feature_check(&hdr, ht->incompat_features,
+			ht->ro_compat_features, ht->compat_features);
 	if (retval < 0)
 		return -1;
 
@@ -1759,16 +1751,16 @@ util_header_check_remote(struct pool_replica *rep, unsigned partidx)
  */
 static int
 util_replica_create_local(struct pool_set *set, unsigned repidx, int flags,
-	const char *sig, uint32_t major, uint32_t compat, uint32_t incompat,
-	uint32_t ro_compat, const unsigned char *prev_repl_uuid,
-	const unsigned char *next_repl_uuid, const unsigned char *arch_flags)
+	const struct pool_hdr_template *ht, const unsigned char *prev_repl_uuid,
+	const unsigned char *next_repl_uuid)
 {
 	LOG(3, "set %p repidx %u flags %d sig %.8s major %u "
 		"compat %#x incompat %#x ro_comapt %#x"
-		"prev_repl_uuid %p next_repl_uuid %p arch_flags %p",
-		set, repidx, flags, sig, major,
-		compat, incompat, ro_compat,
-		prev_repl_uuid, next_repl_uuid, arch_flags);
+		"prev_repl_uuid %p next_repl_uuid %p",
+		set, repidx, flags, ht->signature, ht->major,
+		ht->compat_features, ht->incompat_features,
+		ht->ro_compat_features,
+		prev_repl_uuid, next_repl_uuid);
 
 	/*
 	 * XXX: Like we reserve space for all parts in this replica when we map
@@ -1822,10 +1814,8 @@ util_replica_create_local(struct pool_set *set, unsigned repidx, int flags,
 
 		/* create headers, set UUID's */
 		for (unsigned p = 0; p < rep->nparts; p++) {
-			if (util_header_create(set, repidx, p, sig, major,
-					compat, incompat, ro_compat,
-					prev_repl_uuid, next_repl_uuid,
-					arch_flags) != 0) {
+			if (util_header_create(set, repidx, p, ht,
+					prev_repl_uuid, next_repl_uuid) != 0) {
 				LOG(2, "header creation failed - part #%d", p);
 				goto err;
 			}
@@ -1912,16 +1902,15 @@ err:
  */
 static int
 util_replica_create_remote(struct pool_set *set, unsigned repidx, int flags,
-	const char *sig, uint32_t major, uint32_t compat, uint32_t incompat,
-	uint32_t ro_compat, const unsigned char *prev_repl_uuid,
+	const struct pool_hdr_template *ht, const unsigned char *prev_repl_uuid,
 	const unsigned char *next_repl_uuid)
 {
 	LOG(3, "set %p repidx %u flags %d sig %.8s major %u "
 		"compat %#x incompat %#x ro_comapt %#x "
 		"prev_repl_uuid %p next_repl_uuid %p",
-		set, repidx, flags, sig, major,
-		compat, incompat, ro_compat,
-		prev_repl_uuid, next_repl_uuid);
+		set, repidx, flags, ht->signature, ht->major,
+		ht->compat_features, ht->incompat_features,
+		ht->ro_compat_features, prev_repl_uuid, next_repl_uuid);
 
 	struct pool_replica *rep = set->replica[repidx];
 
@@ -1948,9 +1937,8 @@ util_replica_create_remote(struct pool_set *set, unsigned repidx, int flags,
 	part->hdrsize = POOL_HDR_SIZE;
 
 	/* create header, set UUID's */
-	if (util_header_create(set, repidx, 0, sig, major,
-				compat, incompat, ro_compat,
-				prev_repl_uuid, next_repl_uuid, NULL) != 0) {
+	if (util_header_create(set, repidx, 0, ht,
+				prev_repl_uuid, next_repl_uuid) != 0) {
 		LOG(2, "header creation failed - part #0");
 		Free(part->remote_hdr);
 		return -1;
@@ -1966,28 +1954,25 @@ util_replica_create_remote(struct pool_set *set, unsigned repidx, int flags,
  */
 static int
 util_replica_create(struct pool_set *set, unsigned repidx, int flags,
-	const char *sig, uint32_t major, uint32_t compat, uint32_t incompat,
-	uint32_t ro_compat, const unsigned char *prev_repl_uuid,
-	const unsigned char *next_repl_uuid, const unsigned char *arch_flags)
+	const struct pool_hdr_template *ht, const unsigned char *prev_repl_uuid,
+	const unsigned char *next_repl_uuid)
 {
 	LOG(3, "set %p repidx %u flags %d sig %.8s major %u "
 		"compat %#x incompat %#x ro_comapt %#x"
-		"prev_repl_uuid %p next_repl_uuid %p arch_flags %p",
-		set, repidx, flags, sig, major,
-		compat, incompat, ro_compat,
-		prev_repl_uuid, next_repl_uuid, arch_flags);
+		"prev_repl_uuid %p next_repl_uuid %p",
+		set, repidx, flags, ht->signature, ht->major,
+		ht->compat_features, ht->incompat_features,
+		ht->ro_compat_features,
+		prev_repl_uuid, next_repl_uuid);
 
 	if (set->replica[repidx]->remote == NULL) {
 		/* local replica */
-		if (util_replica_create_local(set, repidx, flags, sig, major,
-					compat, incompat, ro_compat,
-					prev_repl_uuid, next_repl_uuid,
-					arch_flags) != 0)
+		if (util_replica_create_local(set, repidx, flags, ht,
+					prev_repl_uuid, next_repl_uuid) != 0)
 			return -1;
 	} else {
 		/* remote replica */
-		if (util_replica_create_remote(set, repidx, flags, sig, major,
-					compat, incompat, ro_compat,
+		if (util_replica_create_remote(set, repidx, flags, ht,
 					prev_repl_uuid, next_repl_uuid) != 0)
 			return -1;
 	}
@@ -2031,16 +2016,15 @@ util_replica_close(struct pool_set *set, unsigned repidx)
  */
 int
 util_pool_create_uuids(struct pool_set **setp, const char *path,
-	size_t poolsize, size_t minsize, const char *sig,
-	uint32_t major, uint32_t compat, uint32_t incompat, uint32_t ro_compat,
+	size_t poolsize, const struct pool_hdr_template *ht,
 	unsigned *nlanes, int can_have_rep, int remote, struct pool_attr *pattr)
 {
 	LOG(3, "setp %p path %s poolsize %zu minsize %zu "
 		"sig %.8s major %u compat %#x incompat %#x ro_comapt %#x "
 		"nlanes %p can_have_rep %i remote %i pattr %p",
-		setp, path, poolsize, minsize,
-		sig, major, compat, incompat, ro_compat,
-		nlanes, can_have_rep, remote, pattr);
+		setp, path, poolsize, ht->minsize, ht->signature, ht->major,
+		ht->compat_features, ht->incompat_features,
+		ht->ro_compat_features, nlanes, can_have_rep, remote, pattr);
 
 	/* attributes must be set for remote replicas */
 	ASSERT(!remote || pattr != NULL);
@@ -2055,7 +2039,7 @@ util_pool_create_uuids(struct pool_set **setp, const char *path,
 		return -1;
 	}
 
-	int ret = util_poolset_create_set(setp, path, poolsize, minsize);
+	int ret = util_poolset_create_set(setp, path, poolsize, ht->minsize);
 	if (ret < 0) {
 		LOG(2, "cannot create pool set -- '%s'", path);
 		return -1;
@@ -2121,24 +2105,21 @@ util_pool_create_uuids(struct pool_set **setp, const char *path,
 			POOL_HDR_UUID_LEN);
 	}
 
-	ret = util_poolset_files_local(set, minsize, 1);
+	ret = util_poolset_files_local(set, ht->minsize, 1);
 	if (ret != 0)
 		goto err_poolset;
 
 	if (remote) {
-		if (util_replica_create(set, 0, flags, sig, major, compat,
-					incompat, ro_compat,
+		if (util_replica_create(set, 0, flags, ht,
 					pattr->prev_repl_uuid,
-					pattr->next_repl_uuid,
-					pattr->user_flags) != 0) {
+					pattr->next_repl_uuid) != 0) {
 			LOG(2, "replica #0 creation failed");
 			goto err_create;
 		}
 	} else {
 		for (unsigned r = 0; r < set->nreplicas; r++) {
-			if (util_replica_create(set, r, flags, sig, major,
-						compat, incompat, ro_compat,
-						NULL, NULL, NULL) != 0) {
+			if (util_replica_create(set, r, flags, ht,
+						NULL, NULL) != 0) {
 				LOG(2, "replica #%u creation failed", r);
 				goto err_create;
 			}
@@ -2146,7 +2127,7 @@ util_pool_create_uuids(struct pool_set **setp, const char *path,
 	}
 
 	if (set->remote) {
-		ret = util_poolset_files_remote(set, minsize, nlanes, 1);
+		ret = util_poolset_files_remote(set, ht->minsize, nlanes, 1);
 		if (ret != 0)
 			goto err_create;
 	}
@@ -2178,19 +2159,17 @@ err_remote:
  */
 int
 util_pool_create(struct pool_set **setp, const char *path, size_t poolsize,
-	size_t minsize, const char *sig, uint32_t major, uint32_t compat,
-	uint32_t incompat, uint32_t ro_compat, unsigned *nlanes,
-	int can_have_rep)
+	const struct pool_hdr_template *ht, unsigned *nlanes, int can_have_rep)
 {
 	LOG(3, "setp %p path %s poolsize %zu minsize %zu "
 		"sig %.8s major %u compat %#x incompat %#x "
 		"ro_comapt %#x nlanes %p can_have_rep %i",
-		setp, path, poolsize, minsize,
-		sig, major, compat, incompat, ro_compat, nlanes, can_have_rep);
+		setp, path, poolsize, ht->minsize, ht->signature, ht->major,
+		ht->compat_features, ht->incompat_features,
+		ht->ro_compat_features, nlanes, can_have_rep);
 
-	return util_pool_create_uuids(setp, path, poolsize, minsize, sig, major,
-					compat, incompat, ro_compat, nlanes,
-					can_have_rep, POOL_LOCAL, NULL);
+	return util_pool_create_uuids(setp, path, poolsize,
+		ht, nlanes, can_have_rep, POOL_LOCAL, NULL);
 }
 
 /*
@@ -2385,17 +2364,16 @@ util_unmap_all_hdrs(struct pool_set *set)
  * util_replica_check -- check headers, check UUID's, check replicas linkage
  */
 static int
-util_replica_check(struct pool_set *set, const char *sig, uint32_t major,
-			uint32_t compat, uint32_t incompat, uint32_t ro_compat)
+util_replica_check(struct pool_set *set, const struct pool_hdr_template *ht)
 {
 	LOG(3, "set %p sig %.8s major %u compat %#x incompat %#x ro_comapt %#x",
-		set, sig, major, compat, incompat, ro_compat);
+		set, ht->signature, ht->major, ht->compat_features,
+		ht->incompat_features, ht->ro_compat_features);
 
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		struct pool_replica *rep = set->replica[r];
 		for (unsigned p = 0; p < rep->nparts; p++) {
-			if (util_header_check(set, r, p, sig, major,
-					compat, incompat, ro_compat) != 0) {
+			if (util_header_check(set, r, p, ht) != 0) {
 				LOG(2, "header check failed - part #%d", p);
 				return -1;
 			}
@@ -2489,19 +2467,18 @@ err_poolset:
  */
 int
 util_pool_open(struct pool_set **setp, const char *path, int rdonly,
-	size_t minsize, const char *sig,
-	uint32_t major, uint32_t compat, uint32_t incompat, uint32_t ro_compat,
-	unsigned *nlanes)
+	const struct pool_hdr_template *ht, unsigned *nlanes)
 {
 	LOG(3, "setp %p path %s rdonly %d minsize %zu sig %.8s major %u "
 		"compat %#x incompat %#x ro_comapt %#x nlanes %p",
-		setp, path, rdonly, minsize, sig, major,
-		compat, incompat, ro_compat, nlanes);
+		setp, path, rdonly, ht->minsize, ht->signature, ht->major,
+		ht->compat_features, ht->incompat_features,
+		ht->ro_compat_features, nlanes);
 
 	int flags = rdonly ? MAP_PRIVATE|MAP_NORESERVE : MAP_SHARED;
 	int oerrno;
 
-	int ret = util_poolset_create_set(setp, path, 0, minsize);
+	int ret = util_poolset_create_set(setp, path, 0, ht->minsize);
 	if (ret < 0) {
 		LOG(2, "cannot open pool set -- '%s'", path);
 		return -1;
@@ -2524,7 +2501,7 @@ util_pool_open(struct pool_set **setp, const char *path, int rdonly,
 		return -1;
 	}
 
-	ret = util_poolset_files_local(set, minsize, 0);
+	ret = util_poolset_files_local(set, ht->minsize, 0);
 	if (ret != 0)
 		goto err_poolset;
 
@@ -2535,13 +2512,13 @@ util_pool_open(struct pool_set **setp, const char *path, int rdonly,
 		}
 
 	if (set->remote) {
-		ret = util_poolset_files_remote(set, minsize, nlanes, 0);
+		ret = util_poolset_files_remote(set, ht->minsize, nlanes, 0);
 		if (ret != 0)
 			goto err_replica;
 	}
 
 	/* check headers, check UUID's, check replicas linkage */
-	if (util_replica_check(set, sig, major, compat, incompat, ro_compat))
+	if (util_replica_check(set, ht))
 		goto err_replica;
 
 	/* unmap all headers */
@@ -2570,25 +2547,20 @@ err_poolset:
  */
 int
 util_pool_open_remote(struct pool_set **setp, const char *path, int rdonly,
-	size_t minsize, char *sig, uint32_t *major,
-	uint32_t *compat, uint32_t *incompat, uint32_t *ro_compat,
+	struct pool_hdr_template *ht,
 	unsigned char *poolset_uuid, unsigned char *first_part_uuid,
-	unsigned char *prev_repl_uuid, unsigned char *next_repl_uuid,
-	unsigned char *arch_flags)
+	unsigned char *prev_repl_uuid, unsigned char *next_repl_uuid)
 {
 	LOG(3, "setp %p path %s rdonly %d minsize %zu "
-		"sig %p major %p compat %p incompat %p ro_comapt %p"
-		"poolset_uuid %p first_part_uuid %p"
-		"prev_repl_uuid %p next_repl_uuid %p arch_flags %p",
-		setp, path, rdonly, minsize,
-		sig, major, compat, incompat, ro_compat,
-		poolset_uuid, first_part_uuid, prev_repl_uuid, next_repl_uuid,
-		arch_flags);
+		"ht %p poolset_uuid %p first_part_uuid %p"
+		"prev_repl_uuid %p next_repl_uuid %p",
+		setp, path, rdonly, ht->minsize, ht,
+		poolset_uuid, first_part_uuid, prev_repl_uuid, next_repl_uuid);
 
 	int flags = rdonly ? MAP_PRIVATE|MAP_NORESERVE : MAP_SHARED;
 	int oerrno;
 
-	int ret = util_poolset_create_set(setp, path, 0, minsize);
+	int ret = util_poolset_create_set(setp, path, 0, ht->minsize);
 	if (ret < 0) {
 		LOG(2, "cannot open pool set -- '%s'", path);
 		return -1;
@@ -2607,7 +2579,7 @@ util_pool_open_remote(struct pool_set **setp, const char *path, int rdonly,
 		goto err_poolset;
 	}
 
-	ret = util_poolset_files_local(set, minsize, 0);
+	ret = util_poolset_files_local(set, ht->minsize, 0);
 	if (ret != 0)
 		goto err_poolset;
 
@@ -2630,16 +2602,16 @@ util_pool_open_remote(struct pool_set **setp, const char *path, int rdonly,
 		set->rdonly |= rep->part[p].rdonly;
 	}
 
-	memcpy(sig, hdr->signature, POOL_HDR_SIG_LEN);
-	*major = hdr->major;
-	*compat = hdr->compat_features;
-	*incompat = hdr->incompat_features;
-	*ro_compat = hdr->ro_compat_features;
+	memcpy(ht->signature, hdr->signature, POOL_HDR_SIG_LEN);
+	ht->major = hdr->major;
+	ht->compat_features = hdr->compat_features;
+	ht->incompat_features = hdr->incompat_features;
+	ht->ro_compat_features = hdr->ro_compat_features;
 	memcpy(poolset_uuid, hdr->poolset_uuid, POOL_HDR_UUID_LEN);
 	memcpy(first_part_uuid, hdr->uuid, POOL_HDR_UUID_LEN);
 	memcpy(prev_repl_uuid, hdr->prev_repl_uuid, POOL_HDR_UUID_LEN);
 	memcpy(next_repl_uuid, hdr->next_repl_uuid, POOL_HDR_UUID_LEN);
-	memcpy(arch_flags, &hdr->arch_flags, sizeof(struct arch_flags));
+	memcpy(&ht->arch_flags, &hdr->arch_flags, sizeof(struct arch_flags));
 
 	/* unmap all headers */
 	for (unsigned p = 0; p < rep->nparts; p++)
