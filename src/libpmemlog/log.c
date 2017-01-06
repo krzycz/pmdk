@@ -62,7 +62,7 @@ struct pool_hdr_template Log_ht = {
 	LOG_FORMAT_INCOMPAT,
 	LOG_FORMAT_RO_COMPAT,
 	PMEMLOG_MIN_POOL,
-	{ 0 }, /* arch flags  - initialized by lib ctor */
+	ARCH_FLAGS_NULL, /* arch flags  - initialized by lib ctor */
 };
 
 /*

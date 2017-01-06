@@ -84,6 +84,8 @@ struct arch_flags {
 	uint16_t e_machine;		/* required architecture */
 };
 
+#define ARCH_FLAGS_NULL { 0, 0, 0, { 0 }, 0 }
+
 /*
  * header used at the beginning of all types of memory pools
  *
@@ -116,7 +118,7 @@ struct pool_hdr {
  * pool header template used for pool creation
  */
 struct pool_hdr_template {
-	char *signature;
+	char signature[POOL_HDR_SIG_LEN];
 	uint32_t major;			/* format major version number */
 	uint32_t compat_features;	/* mask: compatible "may" features */
 	uint32_t incompat_features;	/* mask: "must support" features */

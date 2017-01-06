@@ -63,7 +63,7 @@ struct pool_hdr_template Blk_ht = {
 	BLK_FORMAT_INCOMPAT,
 	BLK_FORMAT_RO_COMPAT,
 	PMEMBLK_MIN_POOL,
-	{ 0 }, /* arch flags  - initialized by lib ctor */
+	ARCH_FLAGS_NULL, /* arch flags  - initialized by lib ctor */
 };
 
 /*

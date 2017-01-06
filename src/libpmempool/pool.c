@@ -201,14 +201,15 @@ pool_set_map(const char *fname, struct pool_set **poolset, int rdonly)
 	}
 
 	struct pool_hdr_template ht = {
-		hdr.signature,
+		"",
 		hdr.major,
 		hdr.compat_features,
 		hdr.incompat_features,
 		hdr.ro_compat_features,
 		pool_get_min_size(type), /* minimum size based on pool type */
-		{ 0 } /* arch flags initialized below */
+		ARCH_FLAGS_NULL /* arch flags initialized below */
 	};
+	memcpy(&ht.signature, &hdr.signature, POOL_HDR_SIG_LEN);
 
 	util_get_arch_flags(&ht.arch_flags);
 
