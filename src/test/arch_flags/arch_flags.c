@@ -167,16 +167,15 @@ main(int argc, char *argv[])
 		char *arg2 = argv[i + 1];
 		int ret;
 		struct arch_flags arch_flags;
-		struct arch_flags cur_af;
-
-		if ((ret = util_get_arch_flags(&cur_af)) < 0)
-			FATAL_USAGE();
 
 		if ((ret = read_arch_flags(arg1, &arch_flags)) < 0)
 			FATAL_USAGE();
 		else if (ret == 0) {
 			Open_path = arg2;
 			Open_ret = 0;
+			struct arch_flags cur_af = { 0 };
+
+			util_get_arch_flags(&cur_af);
 			ret = util_check_arch_flags(&arch_flags, &cur_af);
 			UT_OUT("check: %d", ret);
 		}
