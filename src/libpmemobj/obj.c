@@ -951,6 +951,11 @@ obj_replica_init(PMEMobjpool *rep, struct pool_set *set, unsigned repidx,
 	if (ret)
 		return ret;
 
+	rep->redo = redo_log_config_new(rep->addr, &rep->p_ops,
+			redo_log_check_offset, rep, REDO_NUM_ENTRIES);
+	if (!rep->redo)
+		return -1;
+
 	return 0;
 }
 
@@ -1100,11 +1105,6 @@ pmemobj_create(const char *path, const char *layout, size_t poolsize,
 	}
 
 	pop->set = set;
-
-	pop->redo = redo_log_config_new(pop->addr, &pop->p_ops,
-			redo_log_check_offset, pop, REDO_NUM_ENTRIES);
-	if (!pop->redo)
-		goto err;
 
 	/* create pool descriptor */
 	if (obj_descr_create(pop, layout, set->poolsize) != 0) {
@@ -1322,11 +1322,6 @@ obj_open_common(const char *path, const char *layout, int cow, int boot)
 	}
 
 	pop->set = set;
-
-	pop->redo = redo_log_config_new(pop->addr, &pop->p_ops,
-			redo_log_check_offset, pop, REDO_NUM_ENTRIES);
-	if (!pop->redo)
-		goto err;
 
 	if (boot) {
 		/* check consistency of 'master' replica */
