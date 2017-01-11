@@ -2603,7 +2603,7 @@ util_pool_open_remote(struct pool_set **setp, const char *path, int rdonly,
 		set->rdonly |= rep->part[p].rdonly;
 	}
 
-	memcpy(ht->signature, hdr->signature, POOL_HDR_SIG_LEN);
+	memcpy(&ht->signature, &hdr->signature, POOL_HDR_SIG_LEN);
 	ht->major = hdr->major;
 	ht->compat_features = hdr->compat_features;
 	ht->incompat_features = hdr->incompat_features;

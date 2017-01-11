@@ -190,10 +190,14 @@ rpmemd_db_pool_create(struct rpmemd_db *db, const char *pool_desc,
 	pattr.first_part_uuid = attr->uuid;
 	pattr.prev_repl_uuid = attr->prev_uuid;
 	pattr.next_repl_uuid = attr->next_uuid;
-	/* pattr.user_flags = attr->user_flags; */
-	/* XXX */
+	pattr.user_flags = attr->user_flags;
 
 	struct pool_hdr_template ht;
+	ht.major = attr->major;
+	ht.compat_features = attr->compat_features;
+	ht.incompat_features = attr->incompat_features;
+	ht.ro_compat_features = attr->ro_compat_features;
+	ht.compat_features = attr->compat_features;
 	ht.minsize = RPMEM_MIN_POOL;
 	util_get_arch_flags(&ht.arch_flags);
 

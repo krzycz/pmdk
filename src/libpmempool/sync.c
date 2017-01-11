@@ -280,7 +280,7 @@ create_headers_for_broken_parts(struct pool_set *set, unsigned src_replica,
 
 	/* XXX */
 	struct pool_hdr_template ht = {
-		src_hdr->signature,
+		"",
 		src_hdr->major,
 		src_hdr->compat_features,
 		src_hdr->incompat_features,
@@ -289,6 +289,7 @@ create_headers_for_broken_parts(struct pool_set *set, unsigned src_replica,
 		{ 0 }, /* arch flags - initialized below */
 	};
 
+	memcpy(&ht.signature, &src_hdr->signature, POOL_HDR_SIG_LEN);
 	util_get_arch_flags(&ht.arch_flags);
 
 	for (unsigned r = 0; r < set_hs->nreplicas; ++r) {

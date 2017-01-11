@@ -122,6 +122,7 @@ struct pool_attr {
 	const unsigned char *first_part_uuid;	/* first part uuid */
 	const unsigned char *prev_repl_uuid;	/* prev replica uuid */
 	const unsigned char *next_repl_uuid;	/* next replica uuid */
+	const unsigned char *user_flags;	/* user flags */
 };
 
 #define REP(set, r)\
