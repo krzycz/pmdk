@@ -739,4 +739,7 @@ do
 	mv -v $FILE $OUT_DIR/
 done
 
+cd $OUT_DIR
+tar czf nvml-$PACKAGE_VERSION-dpkgs.tar.gz *
+
 exit 0

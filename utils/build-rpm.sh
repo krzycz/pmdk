@@ -205,6 +205,9 @@ rpmbuild --define "_topdir `pwd`"\
 	 -ta $PACKAGE_TARBALL \
 	 $RPMBUILD_OPTS
 
+cd $OUT_DIR
+tar czf nvml-$PACKAGE_VERSION-rpms.tar.gz *
+
 echo "Building rpm packages done"
 
 exit 0
