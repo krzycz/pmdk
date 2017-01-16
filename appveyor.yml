@@ -82,7 +82,21 @@ artifacts:
   name: NVML_msi
 
 - path: 'src\x64\*.zip'
-  name: NVML
-  
+  name: NVML_zip
+
 - path: '*examples*.zip'
   name: NVML_examples
+
+deploy:
+- provider: GitHub
+  name: NVML Version $(appveyor_build_version)
+  description: 'NVML Version $(appveyor_build_version)'
+  auth_token:
+    secure: d5ux41TnQu6dTMQamD9OH0cPcaeR2WvXV2YWUoTef9Wva1nfvM9Uci5d2JQoxeG1bQu7Tlo41hVN491U6C3p8/hYrKLL7pk1JvkN89ibdI9wrzggSKQuAebE6NXX1TcwVhhIsB5nSug7XxXF7nky2VSaalgeCM86/vJ122Iwt44=
+  artifact: NVML_msi NVML_zip
+  draft: true
+  prerelease: false
+  force_update: true
+  on:
+    branch: master
+    appveyor_repo_tag: true
