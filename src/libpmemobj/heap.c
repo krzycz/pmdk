@@ -243,7 +243,7 @@ heap_chunk_init(struct palloc_heap *heap, struct chunk_header *hdr,
 	VALGRIND_DO_MAKE_MEM_UNDEFINED(hdr, sizeof(*hdr));
 
 	*hdr = nhdr; /* write the entire header (8 bytes) at once */
-	pmemops_persist(&heap->p_ops, hdr, sizeof(*hdr));
+	pmemops_persist(heap->set, hdr, sizeof(*hdr));
 
 	heap_chunk_write_footer(hdr, size_idx);
 }
@@ -265,7 +265,7 @@ heap_zone_init(struct palloc_heap *heap, uint32_t zone_id)
 		.magic = ZONE_HEADER_MAGIC,
 	};
 	z->header = nhdr;  /* write the entire header (8 bytes) at once */
-	pmemops_persist(&heap->p_ops, &z->header, sizeof(z->header));
+	pmemops_persist(heap->set, &z->header, sizeof(z->header));
 }
 
 /*
@@ -281,8 +281,7 @@ heap_init_run(struct palloc_heap *heap, struct bucket *b,
 	/* add/remove chunk_run and chunk_header to valgrind transaction */
 	VALGRIND_ADD_TO_TX(run, sizeof(*run));
 	run->block_size = b->unit_size;
-	pmemops_persist(&heap->p_ops, &run->block_size,
-			sizeof(run->block_size));
+	pmemops_persist(heap->set, &run->block_size, sizeof(run->block_size));
 
 	ASSERT(hdr->type == CHUNK_TYPE_FREE);
 
@@ -296,13 +295,13 @@ heap_init_run(struct palloc_heap *heap, struct bucket *b,
 	run->bitmap[nval - 1] = r->bitmap_lastval;
 	VALGRIND_REMOVE_FROM_TX(run, sizeof(*run));
 
-	pmemops_persist(&heap->p_ops, run->bitmap, sizeof(run->bitmap));
+	pmemops_persist(heap->set, run->bitmap, sizeof(run->bitmap));
 
 	VALGRIND_ADD_TO_TX(hdr, sizeof(*hdr));
 	hdr->type = CHUNK_TYPE_RUN;
 	VALGRIND_REMOVE_FROM_TX(hdr, sizeof(*hdr));
 
-	pmemops_persist(&heap->p_ops, hdr, sizeof(*hdr));
+	pmemops_persist(heap->set, hdr, sizeof(*hdr));
 }
 
 /*
@@ -1500,7 +1499,7 @@ heap_degrade_run_if_empty(struct palloc_heap *heap,
 	 */
 	struct operation_context ctx;
 	operation_init(&ctx, heap->base, NULL, NULL);
-	ctx.p_ops = &heap->p_ops;
+	ctx.set = heap->set;
 
 	util_mutex_lock(&b->lock);
 
@@ -1586,7 +1585,7 @@ heap_get_ncaches(void)
  */
 int
 heap_boot(struct palloc_heap *heap, void *heap_start, uint64_t heap_size,
-		void *base, struct pmem_ops *p_ops)
+		void *base, struct pool_set *set)
 {
 	struct heap_rt *h = Malloc(sizeof(*h));
 	int err;
@@ -1612,7 +1611,7 @@ heap_boot(struct palloc_heap *heap, void *heap_start, uint64_t heap_size,
 
 	memset(h->last_drained, 0, sizeof(h->last_drained));
 
-	heap->p_ops = *p_ops;
+	heap->set = set;
 	heap->layout = heap_start;
 	heap->rt = h;
 	heap->size = heap_size;
@@ -1660,7 +1659,7 @@ heap_write_header(struct heap_header *hdr, size_t size)
  * If successful function returns zero. Otherwise an error number is returned.
  */
 int
-heap_init(void *heap_start, uint64_t heap_size, struct pmem_ops *p_ops)
+heap_init(void *heap_start, uint64_t heap_size, struct pool_set *set)
 {
 	if (heap_size < HEAP_MIN_SIZE)
 		return EINVAL;
@@ -1669,14 +1668,14 @@ heap_init(void *heap_start, uint64_t heap_size, struct pmem_ops *p_ops)
 
 	struct heap_layout *layout = heap_start;
 	heap_write_header(&layout->header, heap_size);
-	pmemops_persist(p_ops, &layout->header, sizeof(struct heap_header));
+	pmemops_persist(set, &layout->header, sizeof(struct heap_header));
 
 	unsigned zones = heap_max_zone(heap_size);
 	for (unsigned i = 0; i < zones; ++i) {
-		pmemops_memset_persist(p_ops,
+		pmemops_memset_persist(set,
 				&ZID_TO_ZONE(layout, i)->header,
 				0, sizeof(struct zone_header));
-		pmemops_memset_persist(p_ops,
+		pmemops_memset_persist(set,
 				&ZID_TO_ZONE(layout, i)->chunk_headers,
 				0, sizeof(struct chunk_header));
 
@@ -1860,7 +1859,8 @@ heap_check(void *heap_start, uint64_t heap_size)
  * If successful function returns zero. Otherwise an error number is returned.
  */
 int
-heap_check_remote(void *heap_start, uint64_t heap_size, struct remote_ops *ops)
+heap_check_remote(void *heap_start, uint64_t heap_size,
+		struct rep_rpmem_ops *ops)
 {
 	if (heap_size < HEAP_MIN_SIZE) {
 		ERR("heap: invalid heap size");

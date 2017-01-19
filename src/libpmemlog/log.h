@@ -63,10 +63,8 @@ struct pmemlog {
 	/* some run-time state, allocated out of memory pool... */
 	void *addr;			/* mapped region */
 	size_t size;			/* size of mapped region */
-	int is_pmem;			/* true if pool is PMEM */
 	int rdonly;			/* true if pool is opened read-only */
 	pthread_rwlock_t *rwlockp;	/* pointer to RW lock */
-	int is_dax;			/* true if mapped on device dax */
 
 	struct pool_set *set;		/* pool set info */
 };
@@ -76,5 +74,5 @@ struct pmemlog {
 
 extern struct pool_hdr_template Log_ht;
 
-void pmemlog_convert2h(struct pmemlog *plp);
-void pmemlog_convert2le(struct pmemlog *plp);
+void log_convert2h(struct pmemlog *plp);
+void log_convert2le(struct pmemlog *plp);

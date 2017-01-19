@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -192,7 +192,7 @@ pvector_array_constr(void *ctx, void *ptr, size_t usable_size, void *arg)
 	 */
 	VALGRIND_ADD_TO_TX(ptr, usable_size);
 
-	pmemops_memset_persist(&pop->p_ops, ptr, 0, usable_size);
+	pmemops_memset_persist(pop->set, ptr, 0, usable_size);
 
 	return 0;
 }
@@ -231,7 +231,7 @@ pvector_push_back(struct pvector_context *ctx)
 			ctx->vec->arrays[0] = OBJ_PTR_TO_OFF(pop,
 				&ctx->vec->embedded);
 
-			pmemops_persist(&pop->p_ops, &ctx->vec->arrays[0],
+			pmemops_persist(pop->set, &ctx->vec->arrays[0],
 				sizeof(ctx->vec->arrays[0]));
 		} else {
 			size_t arr_size = sizeof(uint64_t) *

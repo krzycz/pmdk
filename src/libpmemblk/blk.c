@@ -74,6 +74,7 @@ lane_enter(PMEMblkpool *pbp, unsigned *lane)
 {
 	unsigned mylane;
 
+	/* XXX - set_lane_hold */
 	mylane = __sync_fetch_and_add(&pbp->next_lane, 1) % pbp->nlane;
 
 	/* lane selected, grab the per-lane lock */
@@ -88,6 +89,7 @@ lane_enter(PMEMblkpool *pbp, unsigned *lane)
 static void
 lane_exit(PMEMblkpool *pbp, unsigned mylane)
 {
+	/* XXX - set_lane_release */
 	util_mutex_unlock(&pbp->locks[mylane]);
 }
 
@@ -145,25 +147,17 @@ nswrite(void *ns, unsigned lane, const void *buf, size_t count,
 #endif
 
 	/* unprotect the memory (debug version only) */
-	RANGE_RW(dest, count, pbp->is_dax);
+	SET_RANGE_RW(pbp->set, dest, count);
 
-	if (pbp->is_pmem)
-		pmem_memcpy_nodrain(dest, buf, count);
-	else
-		memcpy(dest, buf, count);
+	pmemops_memcpy_persist(pbp->set, dest, buf, count);
 
 	/* protect the memory again (debug version only) */
-	RANGE_RO(dest, count, pbp->is_dax);
+	SET_RANGE_RO(pbp->set, dest, count);
 
 #ifdef DEBUG
 	/* release debug write lock */
 	util_mutex_unlock(&pbp->write_lock);
 #endif
-
-	if (pbp->is_pmem)
-		pmem_drain();
-	else
-		pmem_msync(dest, count);
 
 	return 0;
 }
@@ -223,10 +217,7 @@ nssync(void *ns, unsigned lane, void *addr, size_t len)
 
 	LOG(12, "pbp %p lane %u addr %p len %zu", pbp, lane, addr, len);
 
-	if (pbp->is_pmem)
-		pmem_persist(addr, len);
-	else
-		pmem_msync(addr, len);
+	pmemops_persist(pbp->set, addr, len);
 }
 
 /*
@@ -252,12 +243,12 @@ nszero(void *ns, unsigned lane, size_t count, uint64_t off)
 	void *dest = (char *)pbp->data + off;
 
 	/* unprotect the memory (debug version only) */
-	RANGE_RW(dest, count, pbp->is_dax);
+	SET_RANGE_RW(pbp->set, dest, count);
 
-	pmem_memset_persist(dest, 0, count);
+	pmemops_memset_persist(pbp->set, dest, 0, count);
 
 	/* protect the memory again (debug version only) */
-	RANGE_RO(dest, count, pbp->is_dax);
+	SET_RANGE_RO(pbp->set, dest, count);
 
 	return 0;
 }
@@ -282,10 +273,11 @@ pmemblk_descr_create(PMEMblkpool *pbp, uint32_t bsize, int zeroed)
 
 	/* create the required metadata */
 	pbp->bsize = htole32(bsize);
-	PERSIST_GENERIC(pbp->is_pmem, &pbp->bsize, sizeof(bsize));
+	pmemops_persist(pbp->set, &pbp->bsize, sizeof(bsize));
 
 	pbp->is_zeroed = zeroed;
-	PERSIST_GENERIC(pbp->is_pmem, &pbp->is_zeroed, sizeof(pbp->is_zeroed));
+	pmemops_persist(pbp->set, &pbp->is_zeroed,
+			sizeof(pbp->is_zeroed));
 
 	return 0;
 }
@@ -383,10 +375,10 @@ pmemblk_runtime_init(PMEMblkpool *pbp, size_t bsize, int rdonly)
 	 * The prototype PMFS doesn't allow this when large pages are in
 	 * use. It is not considered an error if this fails.
 	 */
-	RANGE_NONE(pbp->addr, sizeof(struct pool_hdr), pbp->is_dax);
+	SET_RANGE_NONE(pbp->set, pbp->addr, sizeof(struct pool_hdr));
 
 	/* the data area should be kept read-only for debug version */
-	RANGE_RO(pbp->data, pbp->datasize, pbp->is_dax);
+	SET_RANGE_RO(pbp->set, pbp->data, pbp->datasize);
 
 	return 0;
 
@@ -432,18 +424,15 @@ pmemblk_create(const char *path, size_t bsize, size_t poolsize,
 
 	ASSERT(set->nreplicas > 0);
 
-	struct pool_replica *rep = set->replica[0];
-	PMEMblkpool *pbp = rep->part[0].addr;
+	PMEMblkpool *pbp = set->p_ops.base;
 
 	VALGRIND_REMOVE_PMEM_MAPPING(&pbp->addr,
 			sizeof(struct pmemblk) -
 			((uintptr_t)&pbp->addr - (uintptr_t)&pbp->hdr));
 
 	pbp->addr = pbp;
-	pbp->size = rep->repsize;
+	pbp->size = set->poolsize;
 	pbp->set = set;
-	pbp->is_pmem = rep->is_pmem;
-	pbp->is_dax = rep->part[0].is_dax;
 
 	/* create pool descriptor */
 	if (pmemblk_descr_create(pbp, (uint32_t)bsize, set->zeroed) != 0) {
@@ -496,18 +485,15 @@ pmemblk_open_common(const char *path, size_t bsize, int cow)
 
 	ASSERT(set->nreplicas > 0);
 
-	struct pool_replica *rep = set->replica[0];
-	PMEMblkpool *pbp = rep->part[0].addr;
+	PMEMblkpool *pbp = set->p_ops.base;
 
 	VALGRIND_REMOVE_PMEM_MAPPING(&pbp->addr,
 			sizeof(struct pmemblk) -
 			((uintptr_t)&pbp->addr - (uintptr_t)&pbp->hdr));
 
 	pbp->addr = pbp;
-	pbp->size = rep->repsize;
+	pbp->size = set->poolsize;
 	pbp->set = set;
-	pbp->is_pmem = rep->is_pmem;
-	pbp->is_dax = rep->part[0].is_dax;
 
 	if (set->nreplicas > 1) {
 		errno = ENOTSUP;

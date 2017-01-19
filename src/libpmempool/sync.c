@@ -97,7 +97,7 @@ recreate_broken_parts(struct pool_set *set,
 {
 	LOG(3, "set %p, set_hs %p, flags %u", set, set_hs, flags);
 	for (unsigned r = 0; r < set_hs->nreplicas; ++r) {
-		if (set->replica[r]->remote)
+		if (set->replica[r]->rpp)
 			continue;
 
 		struct pool_replica *broken_r = set->replica[r];
@@ -347,7 +347,7 @@ copy_data_to_broken_parts(struct pool_set *set, unsigned healthy_replica,
 			size_t off = replica_get_part_data_offset(set, r, p);
 			size_t len = replica_get_part_data_len(set, r, p);
 
-			if (rep->remote)
+			if (rep->rpp)
 				len = poolsize - off;
 
 			/* do not allow copying too much data */
@@ -361,25 +361,25 @@ copy_data_to_broken_parts(struct pool_set *set, unsigned healthy_replica,
 			size_t fpoff = (p == 0) ? POOL_HDR_SIZE : 0;
 			void *dst_addr = ADDR_SUM(part->addr, fpoff);
 
-			if (rep->remote) {
-				int ret = Rpmem_persist(rep->remote->rpp,
+			if (rep->rpp) {
+				int ret = Rpmem_persist(rep->rpp,
 						off - POOL_HDR_SIZE, len, 0);
 				if (ret) {
 					LOG(1, "Copying data to remote node "
 						"failed -- '%s' on '%s'",
-						rep->remote->pool_desc,
-						rep->remote->node_addr);
+						rep->pool_desc,
+						rep->node_addr);
 					return -1;
 				}
-			} else if (rep_h->remote) {
-				int ret = Rpmem_read(rep_h->remote->rpp,
+			} else if (rep_h->rpp) {
+				int ret = Rpmem_read(rep_h->rpp,
 						dst_addr,
 						off - POOL_HDR_SIZE, len);
 				if (ret) {
 					LOG(1, "Reading data from remote node "
 						"failed -- '%s' on '%s'",
-						rep_h->remote->pool_desc,
-						rep_h->remote->node_addr);
+						rep_h->pool_desc,
+						rep_h->node_addr);
 					return -1;
 				}
 			} else {
@@ -428,7 +428,7 @@ grant_created_parts_perm(struct pool_set *set, unsigned src_repn,
 		if (!replica_is_replica_broken(r, set_hs))
 			continue;
 
-		if (set->replica[r]->remote)
+		if (set->replica[r]->rpp)
 			continue;
 
 		for (unsigned p = 0; p < set_hs->replica[r]->nparts; p++) {
@@ -639,7 +639,7 @@ open_remote_replicas(struct pool_set *set,
 	LOG(3, "set %p, set_hs %p", set, set_hs);
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		struct pool_replica *rep = set->replica[r];
-		if (!rep->remote)
+		if (!rep->rpp)
 			continue;
 		if (!replica_is_replica_healthy(r, set_hs))
 			continue;
@@ -649,8 +649,8 @@ open_remote_replicas(struct pool_set *set,
 				set->poolsize, 0, &nlanes);
 		if (ret) {
 			LOG(1, "Opening '%s' on '%s' failed",
-					rep->remote->pool_desc,
-					rep->remote->node_addr);
+					rep->pool_desc,
+					rep->node_addr);
 			return ret;
 		}
 	}
@@ -668,22 +668,21 @@ create_remote_replicas(struct pool_set *set,
 	LOG(3, "set %p, set_hs %p", set, set_hs);
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		struct pool_replica *rep = set->replica[r];
-		if (!rep->remote)
+		if (!rep->rpp)
 			continue;
 		if (replica_is_replica_healthy(r, set_hs))
 			continue;
 
 		/* ignore errors from remove operation */
-		remove_remote(rep->remote->node_addr,
-					rep->remote->pool_desc);
+		remove_remote(rep->node_addr, rep->pool_desc);
 
 		unsigned nlanes = REMOTE_NLANES;
 		int ret = util_poolset_remote_replica_open(set, r,
 				set->poolsize, 1, &nlanes);
 		if (ret) {
 			LOG(1, "Creating '%s' on '%s' failed",
-					rep->remote->pool_desc,
-					rep->remote->node_addr);
+					rep->pool_desc,
+					rep->node_addr);
 			return ret;
 		}
 	}

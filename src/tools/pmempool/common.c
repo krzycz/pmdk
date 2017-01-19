@@ -1421,7 +1421,7 @@ pool_set_file_set_replica(struct pool_set_file *file, size_t replica)
 	if (replica >= file->poolset->nreplicas)
 		return -1;
 
-	if (file->poolset->replica[replica]->remote) {
+	if (file->poolset->replica[replica]->rpp) {
 		outv_err("reading from remote replica not supported");
 		return -1;
 	}

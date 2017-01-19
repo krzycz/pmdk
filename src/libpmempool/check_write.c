@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,7 +72,7 @@ log_write(PMEMpoolcheck *ppc, union location *loc)
 
 	/* endianness conversion */
 	struct pmemlog *log = &ppc->pool->hdr.log;
-	pmemlog_convert2le(log);
+	log_convert2le(log);
 
 	if (pool_write(ppc->pool, log, sizeof(*log), 0)) {
 		ppc->result = CHECK_RESULT_CANNOT_REPAIR;

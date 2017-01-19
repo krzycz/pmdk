@@ -38,6 +38,7 @@
 #define LIBPMEMOBJ_CUCKOO_H 1
 
 #include <stdint.h>
+#include <stddef.h>
 
 struct cuckoo;
 

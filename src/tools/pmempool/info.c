@@ -591,12 +591,12 @@ pmempool_info_replica(struct pmem_info *pip, unsigned repn, int v)
 	struct pool_replica *rep = pip->pfile->poolset->replica[repn];
 	outv(v, "Replica %u%s - %s", repn,
 		repn == 0 ? " (master)" : "",
-		rep->remote == NULL ? "local" : "remote");
+		rep->rpp == NULL ? "local" : "remote");
 
-	if (rep->remote) {
+	if (rep->rpp) {
 		outv(v, ":\n");
-		outv_field(v, "node", "%s", rep->remote->node_addr);
-		outv_field(v, "pool set", "%s", rep->remote->pool_desc);
+		outv_field(v, "node", "%s", rep->node_addr);
+		outv_field(v, "pool set", "%s", rep->pool_desc);
 
 		return 0;
 	}
@@ -783,7 +783,7 @@ pmempool_info_file(struct pmem_info *pip, const char *file_name)
 		if (pip->type != PMEM_POOL_TYPE_BTT) {
 			struct pool_set *ps = pip->pfile->poolset;
 			for (unsigned r = 0; r < ps->nreplicas; ++r) {
-				if (ps->replica[r]->remote == NULL &&
+				if (ps->replica[r]->rpp == NULL &&
 					mprotect(ps->replica[r]->part[0].addr,
 					ps->replica[r]->repsize,
 					PROT_READ) < 0) {

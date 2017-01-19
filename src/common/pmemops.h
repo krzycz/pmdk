@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,70 +36,65 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef void (*persist_fn)(void *base, const void *, size_t);
-typedef void (*flush_fn)(void *base, const void *, size_t);
-typedef void (*drain_fn)(void *base);
-typedef void *(*memcpy_fn)(void *base, void *dest, const void *src, size_t len);
-typedef void *(*memset_fn)(void *base, void *dest, int c, size_t len);
+/*
+ * for each replica - pmem or nonpmem
+ */
+typedef int (*persist_local_fn)(const void *, size_t);
+typedef int (*flush_local_fn)(const void *, size_t);
+typedef int (*drain_local_fn)(void);
+typedef void *(*memcpy_local_fn)(void *, const void *, size_t);
+typedef void *(*memset_local_fn)(void *, int, size_t);
 
-typedef int (*remote_read_fn)(void *ctx, uintptr_t base, void *dest, void *addr,
-		size_t length);
+struct rep_pmem_ops {
+	persist_local_fn persist;
+	flush_local_fn flush;
+	drain_local_fn drain;
+	memcpy_local_fn memcpy;
+	memset_local_fn memset;
+};
 
-struct pmem_ops {
+/*
+ * used by master replica only (set) - point to funcs w/ or w/o replication
+ */
+typedef int (*persist_fn)(const void *base, const void *dest, size_t);
+typedef int (*flush_fn)(const void *base, const void *, size_t);
+typedef int (*drain_fn)(const void *base);
+typedef void *(*memcpy_fn)(const void *base, void *dest, const void *src, size_t len);
+typedef void *(*memset_fn)(const void *base, void *dest, int c, size_t len);
+
+struct set_pmem_ops {
 	/* for 'master' replica: with or without data replication */
 	persist_fn persist;	/* persist function */
 	flush_fn flush;		/* flush function */
 	drain_fn drain;		/* drain function */
 	memcpy_fn memcpy_persist; /* persistent memcpy function */
 	memset_fn memset_persist; /* persistent memset function */
-
-	void *base;
-	size_t pool_size;
-
-	struct remote_ops {
-		remote_read_fn read;
-
-		void *ctx;
-		uintptr_t base;
-	} remote;
+	memcpy_fn memcpy_nodrain; /* memcpy function */
+	memset_fn memset_nodrain; /* memset function */
 };
 
-#ifdef _MSC_VER
-#define force_inline inline
-#else
-#define force_inline __attribute__((always_inline)) inline
-#endif
+struct pmem_ops {
+	struct set_pmem_ops ops;
 
-static force_inline void
-pmemops_persist(const struct pmem_ops *p_ops, const void *d, size_t s)
-{
-	p_ops->persist(p_ops->base, d, s);
-}
+	void *base;		/* base address of master replica */
+	size_t pool_size;
+};
 
-static force_inline void
-pmemops_flush(const struct pmem_ops *p_ops, const void *d, size_t s)
-{
-	p_ops->flush(p_ops->base, d, s);
-}
+/* for remote replicas only */
+typedef int (*remote_read_fn)(void *ctx, uintptr_t base, void *dest, void *addr,
+		size_t length);
 
-static force_inline void
-pmemops_drain(const struct pmem_ops *p_ops)
-{
-	p_ops->drain(p_ops->base);
-}
+typedef void *(*remote_persist_fn)(void *ctx, const void *addr, size_t len,
+		unsigned lane);
 
-static force_inline void *
-pmemops_memcpy_persist(const struct pmem_ops *p_ops, void *dest,
-		const void *src, size_t len)
-{
-	return p_ops->memcpy_persist(p_ops->base, dest, src, len);
-}
+struct rep_rpmem_ops {
+	remote_persist_fn persist;
+	remote_read_fn read;
 
-static force_inline void *
-pmemops_memset_persist(const struct pmem_ops *p_ops, void *dest, int c,
-		size_t len)
-{
-	return p_ops->memset_persist(p_ops->base, dest, c, len);
-}
+	void *ctx;
+	uintptr_t base;	/* base address of remote replica */
+};
+
+
 
 #endif

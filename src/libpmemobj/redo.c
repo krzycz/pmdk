@@ -46,9 +46,9 @@
 #define REDO_FLAG_MASK		(~REDO_FINISH_FLAG)
 
 struct redo_ctx {
-	void *base;
+	void *base;	/* XXX part of set.p_ops */
 
-	struct pmem_ops p_ops;
+	const struct pool_set *set;
 
 	redo_check_offset_fn check_offset;
 	void *check_offset_ctx;
@@ -61,7 +61,7 @@ struct redo_ctx {
  */
 struct redo_ctx *
 redo_log_config_new(void *base,
-		const struct pmem_ops *p_ops,
+		const struct pool_set *set,
 		redo_check_offset_fn check_offset,
 		void *check_offset_ctx,
 		unsigned redo_num_entries)
@@ -73,7 +73,7 @@ redo_log_config_new(void *base,
 	}
 
 	cfg->base = base;
-	cfg->p_ops = *p_ops;
+	cfg->set = set;
 	cfg->check_offset = check_offset;
 	cfg->check_offset_ctx = check_offset_ctx;
 	cfg->redo_num_entries = redo_num_entries;
@@ -138,17 +138,17 @@ redo_log_store_last(const struct redo_ctx *ctx, struct redo_log *redo,
 
 	ASSERTeq(offset & REDO_FINISH_FLAG, 0);
 	ASSERT(index < ctx->redo_num_entries);
-	const struct pmem_ops *p_ops = &ctx->p_ops;
+	const struct pool_set *set = ctx->set;
 
 	/* store value of last entry */
 	redo[index].value = value;
 
 	/* persist all redo log entries */
-	pmemops_persist(p_ops, redo, (index + 1) * sizeof(struct redo_log));
+	pmemops_persist(set, redo, (index + 1) * sizeof(struct redo_log));
 
 	/* store and persist offset of last entry */
 	redo[index].offset = offset | REDO_FINISH_FLAG;
-	pmemops_persist(p_ops, &redo[index].offset, sizeof(redo[index].offset));
+	pmemops_persist(set, &redo[index].offset, sizeof(redo[index].offset));
 }
 
 /*
@@ -161,14 +161,14 @@ redo_log_set_last(const struct redo_ctx *ctx, struct redo_log *redo,
 	LOG(15, "redo %p index %zu", redo, index);
 
 	ASSERT(index < ctx->redo_num_entries);
-	const struct pmem_ops *p_ops = &ctx->p_ops;
+	const struct pool_set *set = ctx->set;
 
 	/* persist all redo log entries */
-	pmemops_persist(p_ops, redo, (index + 1) * sizeof(struct redo_log));
+	pmemops_persist(set, redo, (index + 1) * sizeof(struct redo_log));
 
 	/* set finish flag of last entry and persist */
 	redo[index].offset |= REDO_FINISH_FLAG;
-	pmemops_persist(p_ops, &redo[index].offset, sizeof(redo[index].offset));
+	pmemops_persist(set, &redo[index].offset, sizeof(redo[index].offset));
 }
 
 /*
@@ -183,7 +183,7 @@ redo_log_process(const struct redo_ctx *ctx, struct redo_log *redo,
 #ifdef DEBUG
 	ASSERTeq(redo_log_check(ctx, redo, nentries), 0);
 #endif
-	const struct pmem_ops *p_ops = &ctx->p_ops;
+	const struct pool_set *set = ctx->set;
 
 	uint64_t *val;
 	while ((redo->offset & REDO_FINISH_FLAG) == 0) {
@@ -192,7 +192,7 @@ redo_log_process(const struct redo_ctx *ctx, struct redo_log *redo,
 		*val = redo->value;
 		VALGRIND_REMOVE_FROM_TX(val, sizeof(*val));
 
-		pmemops_flush(p_ops, val, sizeof(uint64_t));
+		pmemops_flush(set, val, sizeof(uint64_t));
 
 		redo++;
 	}
@@ -203,11 +203,11 @@ redo_log_process(const struct redo_ctx *ctx, struct redo_log *redo,
 	*val = redo->value;
 	VALGRIND_REMOVE_FROM_TX(val, sizeof(*val));
 
-	pmemops_persist(p_ops, val, sizeof(uint64_t));
+	pmemops_persist(set, val, sizeof(uint64_t));
 
 	redo->offset = 0;
 
-	pmemops_persist(p_ops, &redo->offset, sizeof(redo->offset));
+	pmemops_persist(set, &redo->offset, sizeof(redo->offset));
 }
 
 /*
@@ -287,10 +287,10 @@ redo_log_is_last(const struct redo_log *redo)
 }
 
 /*
- * redo_get_pmem_ops -- returns pmem_ops
+ * redo_get_pool_set -- returns pmem_ops
  */
-const struct pmem_ops *
-redo_get_pmem_ops(const struct redo_ctx *ctx)
+const struct pool_set *
+redo_get_pool_set(const struct redo_ctx *ctx)
 {
-	return &ctx->p_ops;
+	return ctx->set;
 }

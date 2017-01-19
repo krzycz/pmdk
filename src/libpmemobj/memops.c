@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,9 +59,9 @@ operation_init(struct operation_context *ctx, const void *base,
 	ctx->redo_ctx = redo_ctx;
 	ctx->redo = redo;
 	if (redo_ctx)
-		ctx->p_ops = redo_get_pmem_ops(redo_ctx);
+		ctx->set = redo_get_pool_set(redo_ctx);
 	else
-		ctx->p_ops = NULL;
+		ctx->set = NULL;
 
 	ctx->nentries[ENTRY_PERSISTENT] = 0;
 	ctx->nentries[ENTRY_TRANSIENT] = 0;
@@ -137,7 +137,7 @@ void
 operation_add_entry(struct operation_context *ctx, void *ptr, uint64_t value,
 	enum operation_type type)
 {
-	const struct pmem_ops *p_ops = ctx->p_ops;
+	const struct pmem_ops *p_ops = &ctx->set->p_ops;
 
 	int from_pool = ((uintptr_t)ptr >= (uintptr_t)p_ops->base &&
 			(uintptr_t)ptr < (uintptr_t)p_ops->base +
@@ -209,8 +209,7 @@ operation_process(struct operation_context *ctx)
 		VALGRIND_ADD_TO_TX(e->ptr, sizeof(uint64_t));
 
 		*e->ptr = e->value;
-		pmemops_persist(ctx->p_ops, e->ptr,
-				sizeof(uint64_t));
+		pmemops_persist(ctx->set, e->ptr, sizeof(uint64_t));
 
 		VALGRIND_REMOVE_FROM_TX(e->ptr, sizeof(uint64_t));
 	} else if (ctx->nentries[ENTRY_PERSISTENT] != 0) {

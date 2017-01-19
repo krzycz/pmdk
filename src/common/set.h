@@ -46,6 +46,7 @@ extern "C" {
 
 #include "pool_hdr.h"
 #include "librpmem.h"
+#include "pmemops.h"
 
 /*
  * pool sets & replicas
@@ -94,8 +95,22 @@ struct pool_replica {
 	unsigned nparts;
 	size_t repsize;		/* total size of all the parts (mappings) */
 	int is_pmem;		/* true if all the parts are in PMEM */
-	struct remote_replica *remote;	/* not NULL if the replica */
-					/* is a remote one */
+	int is_dax;		/* true if replica is on Device DAX */
+	int is_master_replica;	/* true for replica[0] */
+
+	void *base;		/* local: base address == part[0]->addr */
+				/* remote: ... */
+
+	/* local replica ops: pmem or non-pmem */
+	struct rep_pmem_ops p_ops;
+
+	/* remote replica section */
+	void *rpp;	/* RPMEMpool opaque handle if it is a remote replica */
+	//uintptr_t remote_base;	/* beginning of the pool's descriptor */
+	char *node_addr;	/* address of a remote node */
+	char *pool_desc;	/* descriptor of a poolset */
+	struct rep_rpmem_ops r_ops;
+
 	struct pool_set_part part[];
 };
 
@@ -106,6 +121,9 @@ struct pool_set {
 	int zeroed;		/* true if all the parts are new files */
 	size_t poolsize;	/* the smallest replica size */
 	int remote;		/* true if contains a remote replica */
+
+	struct pmem_ops p_ops;	/* rep or norep variants */
+
 	struct pool_replica *replica[];
 };
 
@@ -202,6 +220,115 @@ extern int (*Rpmem_close)(RPMEMpool *rpp);
 
 extern int (*Rpmem_remove)(const char *target,
 		const char *pool_set_name, int flags);
+
+
+/*
+ * non-pmem variants of memory ops - for local replicas, not on PMEM
+ */
+void *set_memcpy_nodrain_nonpmem(void *dest, const void *src, size_t len);
+void *set_memset_nodrain_nonpmem(void *dest, int c, size_t len);
+void *set_memcpy_persist_nonpmem(void *dest, const void *src, size_t len);
+void *set_memset_persist_nonpmem(void *dest, int c, size_t len);
+int set_persist_nonpmem(const void *addr, size_t len);
+int set_flush_nonpmem(const void *addr, size_t len);
+int set_drain_nonpmem(void);
+
+
+void *set_memcpy_nodrain_norep(struct pool_set *set, void *dest, const void *src, size_t len);
+void *set_memset_nodrain_norep(struct pool_set *set, void *dest, int c, size_t len);
+void *set_memcpy_persist_norep(struct pool_set *set, void *dest, const void *src, size_t len);
+void *set_memset_persist_norep(struct pool_set *set, void *dest, int c, size_t len);
+int set_persist_norep(struct pool_set *set, const void *addr, size_t len);
+int set_flush_norep(struct pool_set *set, const void *addr, size_t len);
+int set_drain_norep(struct pool_set *set);
+
+
+void *set_memcpy_nodrain(struct pool_set *set, void *dest, const void *src, size_t len);
+void *set_memset_nodrain(struct pool_set *set, void *dest, int c, size_t len);
+void *set_memcpy_persist(struct pool_set *set, void *dest, const void *src, size_t len);
+void *set_memset_persist(struct pool_set *set, void *dest, int c, size_t len);
+int set_persist(struct pool_set *set, const void *addr, size_t len);
+int set_flush(struct pool_set *set, const void *addr, size_t len);
+int set_drain(struct pool_set *set);
+
+int set_range_ro(struct pool_set *set, void *addr, size_t len);
+int set_range_rw(struct pool_set *set, void *addr, size_t len);
+int set_range_none(struct pool_set *set, void *addr, size_t len);
+
+
+/*
+ * macros for micromanaging range protections for the debug version
+ */
+#ifdef DEBUG
+
+#define _RANGE(set, addr, len, type) do {\
+	ASSERT(set_range_##type(set, addr, len) >= 0);\
+} while (0)
+
+#else
+
+#define _RANGE(set, addr, len, type) do {} while (0)
+
+#endif
+
+#define SET_RANGE_RO(set, addr, len) _RANGE(set, addr, len, ro)
+#define SET_RANGE_RW(set, addr, len) _RANGE(set, addr, len, rw)
+#define SET_RANGE_NONE(set, addr, len) _RANGE(set, addr, len, none)
+
+
+
+#ifdef _MSC_VER
+#define force_inline inline
+#else
+#define force_inline __attribute__((always_inline)) inline
+#endif
+
+static force_inline int
+pmemops_persist(const struct pool_set *set, const void *d, size_t s)
+{
+	return set->p_ops.ops.persist(set, d, s);
+}
+
+static force_inline int
+pmemops_flush(const struct pool_set *set, const void *d, size_t s)
+{
+	return set->p_ops.ops.flush(set, d, s);
+}
+
+static force_inline void
+pmemops_drain(const struct pool_set *set)
+{
+	set->p_ops.ops.drain(set);
+}
+
+static force_inline void *
+pmemops_memcpy_persist(const struct pool_set *set, void *dest,
+		const void *src, size_t len)
+{
+	return set->p_ops.ops.memcpy_persist(set, dest, src, len);
+}
+
+static force_inline void *
+pmemops_memset_persist(const struct pool_set *set, void *dest, int c,
+		size_t len)
+{
+	return set->p_ops.ops.memset_persist(set, dest, c, len);
+}
+
+
+static force_inline void *
+pmemops_memcpy_nodrain(const struct pool_set *set, void *dest,
+		const void *src, size_t len)
+{
+	return set->p_ops.ops.memcpy_nodrain(set, dest, src, len);
+}
+
+static force_inline void *
+pmemops_memset_nodrain(const struct pool_set *set, void *dest, int c,
+		size_t len)
+{
+	return set->p_ops.ops.memset_nodrain(set, dest, c, len);
+}
 
 #ifdef __cplusplus
 }

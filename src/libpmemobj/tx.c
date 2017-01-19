@@ -227,7 +227,7 @@ constructor_tx_add_range(void *ctx, void *ptr, size_t usable_size, void *arg)
 
 	struct tx_add_range_args *args = arg;
 	struct tx_range *range = ptr;
-	const struct pmem_ops *p_ops = &pop->p_ops;
+	const struct pool_set *set = pop->set;
 
 	struct oob_header *oobh = OOB_HEADER_FROM_PTR(ptr);
 	/* temporarily add the object copy to the transaction */
@@ -243,9 +243,9 @@ constructor_tx_add_range(void *ctx, void *ptr, size_t usable_size, void *arg)
 	void *src = OBJ_OFF_TO_PTR(args->pop, args->offset);
 
 	/* flush offset and size */
-	pmemops_flush(p_ops, range, sizeof(struct tx_range));
+	pmemops_flush(set, range, sizeof(struct tx_range));
 	/* memcpy data and persist */
-	pmemops_memcpy_persist(p_ops, range->data, src, args->size);
+	pmemops_memcpy_persist(set, range->data, src, args->size);
 
 	VALGRIND_REMOVE_FROM_TX(oobh,
 				sizeof(struct tx_range) + args->size
@@ -264,7 +264,7 @@ static inline void
 tx_set_state(PMEMobjpool *pop, struct lane_tx_layout *layout, uint64_t state)
 {
 	layout->state = state;
-	pmemops_persist(&pop->p_ops, &layout->state, sizeof(layout->state));
+	pmemops_persist(pop->set, &layout->state, sizeof(layout->state));
 }
 
 /*
@@ -275,7 +275,7 @@ tx_clear_vec_entry(PMEMobjpool *pop, uint64_t *entry)
 {
 	VALGRIND_ADD_TO_TX(entry, sizeof(*entry));
 	*entry = 0;
-	pmemops_persist(&pop->p_ops, entry, sizeof(*entry));
+	pmemops_persist(pop->set, entry, sizeof(*entry));
 	VALGRIND_REMOVE_FROM_TX(entry, sizeof(*entry));
 }
 
@@ -485,7 +485,7 @@ tx_restore_range(PMEMobjpool *pop, struct tx_range *range)
 				(char *)txr->begin - (char *)dst_ptr];
 		ASSERT((char *)txr->end >= (char *)txr->begin);
 		size_t size = (size_t)((char *)txr->end - (char *)txr->begin);
-		pmemops_memcpy_persist(&pop->p_ops, txr->begin, src, size);
+		pmemops_memcpy_persist(pop->set, txr->begin, src, size);
 		Free(txr);
 	}
 }
@@ -540,7 +540,7 @@ static void
 tx_abort_recover_range(PMEMobjpool *pop, struct tx_range *range)
 {
 	void *ptr = OBJ_OFF_TO_PTR(pop, range->offset);
-	pmemops_memcpy_persist(&pop->p_ops, ptr, range->data, range->size);
+	pmemops_memcpy_persist(pop->set, ptr, range->data, range->size);
 }
 
 /*
@@ -639,7 +639,7 @@ tx_post_commit_set(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt,
 		}
 
 		VALGRIND_ADD_TO_TX(cache, sz);
-		pmemops_memset_persist(&pop->p_ops, cache, 0, sz);
+		pmemops_memset_persist(pop->set, cache, 0, sz);
 		VALGRIND_REMOVE_FROM_TX(cache, sz);
 
 #ifdef DEBUG
@@ -660,7 +660,7 @@ tx_flush_range(uint64_t offset, uint64_t size_flags, void *ctx)
 	if (size_flags & RANGE_FLAG_NO_FLUSH)
 		return;
 	PMEMobjpool *pop = ctx;
-	pmemops_flush(&pop->p_ops, OBJ_OFF_TO_PTR(pop, offset),
+	pmemops_flush(pop->set, OBJ_OFF_TO_PTR(pop, offset),
 			RANGE_GET_SIZE(size_flags));
 }
 
@@ -1327,7 +1327,7 @@ pmemobj_tx_commit()
 		/* pre-commit phase */
 		tx_pre_commit(pop, lane);
 
-		pmemops_drain(&pop->p_ops);
+		pmemops_drain(pop->set);
 
 		/* set transaction state as committed */
 		tx_set_state(pop, layout, TX_STATE_COMMITTED);
@@ -1484,7 +1484,7 @@ constructor_tx_range_cache(void *ctx, void *ptr, size_t usable_size, void *arg)
 {
 	LOG(3, NULL);
 	PMEMobjpool *pop = ctx;
-	const struct pmem_ops *p_ops = &pop->p_ops;
+	const struct pool_set *set = pop->set;
 
 	ASSERTne(ptr, NULL);
 
@@ -1494,9 +1494,9 @@ constructor_tx_range_cache(void *ctx, void *ptr, size_t usable_size, void *arg)
 		OBJ_OOB_SIZE + sizeof(struct tx_range_cache));
 
 	oobh->size = OBJ_INTERNAL_OBJECT_MASK;
-	pmemops_flush(p_ops, &oobh->size, sizeof(oobh->size));
+	pmemops_flush(set, &oobh->size, sizeof(oobh->size));
 
-	pmemops_memset_persist(p_ops, ptr, 0, sizeof(struct tx_range_cache));
+	pmemops_memset_persist(set, ptr, 0, sizeof(struct tx_range_cache));
 
 	VALGRIND_REMOVE_FROM_TX(oobh,
 		OBJ_OOB_SIZE + sizeof(struct tx_range_cache));
@@ -1554,7 +1554,7 @@ pmemobj_tx_add_small(struct tx_add_range_args *args)
 
 	struct lane_tx_runtime *runtime = tx.section->runtime;
 	struct pvector_context *undo = runtime->undo.ctx[UNDO_SET_CACHE];
-	const struct pmem_ops *p_ops = &pop->p_ops;
+	const struct pool_set *set = pop->set;
 
 	struct tx_range_cache *cache = pmemobj_tx_get_range_cache(pop, undo);
 	if (cache == NULL) {
@@ -1575,12 +1575,12 @@ pmemobj_tx_add_small(struct tx_add_range_args *args)
 	void *src = OBJ_OFF_TO_PTR(pop, args->offset);
 	VALGRIND_ADD_TO_TX(src, args->size);
 
-	pmemops_memcpy_persist(p_ops, range->data, src, args->size);
+	pmemops_memcpy_persist(set, range->data, src, args->size);
 
 	/* the range is only valid if both size and offset are != 0 */
 	range->size = args->size;
 	range->offset = args->offset;
-	pmemops_persist(p_ops, range,
+	pmemops_persist(set, range,
 		sizeof(range->offset) + sizeof(range->size));
 
 	VALGRIND_REMOVE_FROM_TX(range,
@@ -1969,7 +1969,7 @@ pmemobj_tx_free(PMEMoid oid)
 		return obj_tx_abort_err(ENOMEM);
 	}
 	*entry = oid.off;
-	pmemops_persist(&pop->p_ops, entry, sizeof(*entry));
+	pmemops_persist(pop->set, entry, sizeof(*entry));
 
 	return 0;
 }

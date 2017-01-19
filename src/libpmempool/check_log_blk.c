@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,7 +86,7 @@ log_read(PMEMpoolcheck *ppc)
 		return CHECK_ERR(ppc, "cannot read pmemlog structure");
 
 	/* endianness conversion */
-	pmemlog_convert2h(&ppc->pool->hdr.log);
+	log_convert2h(&ppc->pool->hdr.log);
 	return 0;
 }
 

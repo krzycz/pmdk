@@ -62,7 +62,6 @@ struct pmemblk {
 	/* some run-time state, allocated out of memory pool... */
 	void *addr;			/* mapped region */
 	size_t size;			/* size of mapped region */
-	int is_pmem;			/* true if pool is PMEM */
 	int rdonly;			/* true if pool is opened read-only */
 	void *data;			/* post-header data area */
 	size_t datasize;		/* size of data area */
@@ -71,7 +70,6 @@ struct pmemblk {
 	unsigned nlane;			/* number of lanes */
 	unsigned next_lane;		/* used to rotate through lanes */
 	pthread_mutex_t *locks;		/* one per lane */
-	int is_dax;			/* true if mapped on device dax */
 
 	struct pool_set *set;		/* pool set info */
 

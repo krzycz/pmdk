@@ -189,7 +189,6 @@ test_mock_pool_allocs()
 	mock_pop->heap_size = MOCK_POOL_SIZE - mock_pop->heap_offset;
 	mock_pop->nlanes = 1;
 	mock_pop->lanes_offset = sizeof(PMEMobjpool);
-	mock_pop->is_master_replica = 1;
 
 	mock_pop->persist_local = (persist_local_fn)pmem_msync;
 	mock_pop->flush_local = (flush_local_fn)pmem_msync;

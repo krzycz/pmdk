@@ -41,6 +41,7 @@
 #include <stdint.h>
 
 #include "pmemops.h"
+#include "set.h"
 
 struct redo_ctx;
 
@@ -55,7 +56,7 @@ struct redo_log {
 typedef int (*redo_check_offset_fn)(void *ctx, uint64_t offset);
 
 struct redo_ctx *redo_log_config_new(void *base,
-		const struct pmem_ops *p_ops,
+		const struct pool_set *set,
 		redo_check_offset_fn check_offset,
 		void *check_offset_ctx,
 		unsigned redo_num_entries);
@@ -79,6 +80,6 @@ size_t redo_log_nflags(const struct redo_log *redo, size_t nentries);
 uint64_t redo_log_offset(const struct redo_log *redo);
 int redo_log_is_last(const struct redo_log *redo);
 
-const struct pmem_ops *redo_get_pmem_ops(const struct redo_ctx *ctx);
+const struct pool_set *redo_get_pool_set(const struct redo_ctx *ctx);
 
 #endif

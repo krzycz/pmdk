@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -346,10 +346,10 @@ replica_check_store_size(struct pool_set *set,
 	struct pool_replica *rep = set->replica[repn];
 	struct pmemobjpool pop;
 
-	if (rep->remote) {
+	if (rep->rpp) {
 		memcpy(&pop.hdr, rep->part[0].hdr, sizeof(pop.hdr));
 		void *descr = (void *)((uintptr_t)&pop + POOL_HDR_SIZE);
-		if (Rpmem_read(rep->remote->rpp, descr, 0,
+		if (Rpmem_read(rep->rpp, descr, 0,
 				sizeof(pop) - POOL_HDR_SIZE)) {
 			return -1;
 		}
@@ -409,7 +409,7 @@ check_and_open_poolset_part_files(struct pool_set *set,
 	for (unsigned r = 0; r < set->nreplicas; ++r) {
 		struct pool_replica *rep = set->replica[r];
 		struct replica_health_status *rep_hs = set_hs->replica[r];
-		if (rep->remote) {
+		if (rep->rpp) {
 			if (util_replica_open_remote(set, r, 0)) {
 				LOG(1, "cannot open remote replica no %u", r);
 				return -1;
@@ -459,7 +459,7 @@ map_all_unbroken_headers(struct pool_set *set,
 	for (unsigned r = 0; r < set->nreplicas; ++r) {
 		struct pool_replica *rep = set->replica[r];
 		struct replica_health_status *rep_hs = set_hs->replica[r];
-		if (rep->remote)
+		if (rep->rpp)
 			continue;
 
 		for (unsigned p = 0; p < rep->nparts; ++p) {
@@ -488,9 +488,9 @@ unmap_all_headers(struct pool_set *set)
 		struct pool_replica *rep = set->replica[r];
 		util_replica_close(set, r);
 
-		if (rep->remote && rep->remote->rpp) {
-			Rpmem_close(rep->remote->rpp);
-			rep->remote->rpp = NULL;
+		if (rep->rpp) {
+			Rpmem_close(rep->rpp);
+			rep->rpp = NULL;
 		}
 	}
 
@@ -509,7 +509,7 @@ check_checksums(struct pool_set *set, struct poolset_health_status *set_hs)
 		struct pool_replica *rep = REP(set, r);
 		struct replica_health_status *rep_hs = REP(set_hs, r);
 
-		if (rep->remote)
+		if (rep->rpp)
 			continue;
 
 		for (unsigned p = 0; p < rep->nparts; ++p) {
@@ -960,7 +960,7 @@ replica_check_part_sizes(struct pool_set *set, size_t min_size)
 	LOG(3, "set %p, min_size %zu", set, min_size);
 	for (unsigned r = 0; r < set->nreplicas; ++r) {
 		struct pool_replica *rep = set->replica[r];
-		if (rep->remote != NULL)
+		if (rep->rpp != NULL)
 			/* skip remote replicas */
 			continue;
 
@@ -1008,7 +1008,7 @@ replica_check_part_dirs(struct pool_set *set)
 	LOG(3, "set %p", set);
 	for (unsigned r = 0; r < set->nreplicas; ++r) {
 		struct pool_replica *rep = set->replica[r];
-		if (rep->remote != NULL)
+		if (rep->rpp != NULL)
 			/* skip remote replicas */
 			continue;
 
@@ -1055,7 +1055,7 @@ replica_open_poolset_part_files(struct pool_set *set)
 {
 	LOG(3, "set %p", set);
 	for (unsigned r = 0; r < set->nreplicas; ++r) {
-		if (set->replica[r]->remote)
+		if (set->replica[r]->rpp)
 			continue;
 		if (replica_open_replica_part_files(set, r)) {
 			LOG(1, "opening replica %u, part files failed", r);

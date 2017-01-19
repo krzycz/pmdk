@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,7 @@
 
 #include "pmemops.h"
 #include "redo.h"
+#include "set.h"
 
 enum operation_type {
 	OPERATION_SET,
@@ -75,7 +76,8 @@ struct operation_context {
 
 	const struct redo_ctx *redo_ctx;
 	struct redo_log *redo;
-	const struct pmem_ops *p_ops;
+	//const struct pmem_ops *p_ops;
+	const struct pool_set *set;
 
 	size_t nentries[MAX_OPERATION_ENTRY_TYPE];
 	struct operation_entry

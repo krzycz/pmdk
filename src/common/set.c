@@ -86,6 +86,573 @@ static int Remote_replication_available;
 static pthread_mutex_t Remote_lock;
 static int Remote_usage_counter;
 
+
+static struct rep_pmem_ops Pmem_ops = {
+	(persist_local_fn)pmem_persist, /* XXX - void */
+	(flush_local_fn)pmem_flush,
+	(drain_local_fn)pmem_drain,
+	pmem_memcpy_persist,
+	pmem_memset_persist
+};
+
+static struct rep_pmem_ops Nonpmem_ops = {
+	set_persist_nonpmem,
+	set_flush_nonpmem,
+	set_drain_nonpmem,
+	set_memcpy_persist_nonpmem,
+	set_memset_persist_nonpmem
+};
+
+static struct rep_pmem_ops Remote_ops = {
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
+
+static struct set_pmem_ops Rep_ops = {
+	(persist_fn)set_persist,
+	(flush_fn)set_flush,
+	(drain_fn)set_drain,
+	(memcpy_fn)set_memcpy_persist,
+	(memset_fn)set_memset_persist,
+	(memcpy_fn)set_memcpy_nodrain,
+	(memset_fn)set_memset_nodrain,
+};
+
+static struct set_pmem_ops Norep_ops = {
+	(persist_fn)set_persist_norep,
+	(flush_fn)set_flush_norep,
+	(drain_fn)set_drain_norep,
+	(memcpy_fn)set_memcpy_persist_norep,
+	(memset_fn)set_memset_persist_norep,
+	(memcpy_fn)set_memcpy_nodrain_norep,
+	(memset_fn)set_memset_nodrain_norep,
+};
+
+
+/*
+ * set_remote_persist -- (internal) remote persist function
+ */
+static void *
+set_remote_persist(void *ctx, const void *addr, size_t len, unsigned lane)
+{
+	LOG(15, "ctx %p addr %p len %zu lane %u", ctx, addr, len, lane);
+
+	//ASSERTne(rep->rpp, NULL);
+
+	/*
+	 * The pool header is not visible on remote node from the local host
+	 * perspective. It means the pool descriptor is at offset 0
+	 * on remote node.
+	 */
+	uintptr_t offset = 0; //(uintptr_t)addr - (uintptr_t)rep->base;
+
+	int rv = Rpmem_persist(ctx, offset, len, lane);
+	if (rv) {
+		ERR("!rpmem_persist(rpp %p offset %zu length %zu lane %u)"
+			" FATAL ERROR (returned value %i)",
+			ctx, offset, len, lane, rv);
+		return NULL;
+	}
+
+	return (void *)addr;
+}
+
+/*
+ * set_remote_read -- read data from remote replica
+ *
+ * It reads data of size 'length' from the remote replica 'pop'
+ * from address 'addr' and saves it at address 'dest'.
+ */
+static int
+set_remote_read(void *ctx, uintptr_t base, void *dest, void *addr,
+		size_t length)
+{
+	LOG(3, "ctx %p base 0x%lx dest %p addr %p length %zu", ctx, base, dest,
+			addr, length);
+
+	ASSERTne(ctx, NULL);
+	ASSERT((uintptr_t)addr >= base);
+
+	uintptr_t offset = (uintptr_t)addr - base;
+	if (Rpmem_read(ctx, dest, offset, length)) {
+		ERR("!rpmem_read");
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
+ * XXX - Consider removing obj_norep_*() wrappers to call *_local()
+ * functions directly.  Alternatively, always use obj_rep_*(), even
+ * if there are no replicas.  Verify the performance penalty.
+ */
+
+/* NON-PMEM */
+
+/*
+ * set_memcpy_nodrain_nonpmem -- (internal) memcpy followed by an msync
+ */
+void *
+set_memcpy_nodrain_nonpmem(void *dest, const void *src, size_t len)
+{
+	LOG(15, "dest %p src %p len %zu", dest, src, len);
+
+	memcpy(dest, src, len);
+	//pmem_msync(dest, len);
+	return dest;
+}
+
+/*
+ * set_memset_nodrain_nonpmem -- (internal) memset followed by an msync
+ */
+void *
+set_memset_nodrain_nonpmem(void *dest, int c, size_t len)
+{
+	LOG(15, "dest %p c 0x%02x len %zu", dest, c, len);
+
+	memset(dest, c, len);
+	//pmem_msync(dest, len);
+	return dest;
+}
+
+/*
+ * set_memcpy_persist_nonpmem -- (internal) memcpy followed by an msync
+ */
+void *
+set_memcpy_persist_nonpmem(void *dest, const void *src, size_t len)
+{
+	LOG(15, "dest %p src %p len %zu", dest, src, len);
+
+	memcpy(dest, src, len);
+	pmem_msync(dest, len);
+	return dest;
+}
+
+/*
+ * set_memset_persist_nonpmem -- (internal) memset followed by an msync
+ */
+void *
+set_memset_persist_nonpmem(void *dest, int c, size_t len)
+{
+	LOG(15, "dest %p c 0x%02x len %zu", dest, c, len);
+
+	memset(dest, c, len);
+	pmem_msync(dest, len);
+	return dest;
+}
+
+/*
+ * set_persist_nonpmem -- (internal) empty function for drain on non-pmem memory
+ */
+int
+set_persist_nonpmem(const void *addr, size_t len)
+{
+	LOG(15, "addr %p len %zu", addr, len);
+
+	return pmem_msync(addr, len);
+}
+
+/*
+ * set_flush_nonpmem -- (internal) flush on non-pmem memory
+ */
+int
+set_flush_nonpmem(const void *addr, size_t len)
+{
+	LOG(15, "addr %p len %zu", addr, len);
+
+	return pmem_msync(addr, len);
+}
+
+/*
+ * set_drain_nonpmem -- (internal) empty function for drain on non-pmem memory
+ */
+int
+set_drain_nonpmem(void)
+{
+	/* do nothing */
+	return 0;
+}
+
+/* PMEM */
+
+/*
+ * set_memcpy_nodrain_norep -- (internal) memset w/o replication
+ */
+void *
+set_memcpy_nodrain_norep(struct pool_set *set, void *dest, const void *src,
+	size_t len)
+{
+	LOG(15, "set %p dest %p src %p len %zu", set, dest, src, len);
+
+	struct pool_replica *rep = set->replica[0];
+	//return rep->p_ops.memcpy_nodrain(dest, src, len);
+	return rep->p_ops.memcpy(dest, src, len);
+}
+
+/*
+ * set_memset_nodrain_norep -- (internal) memset w/o replication
+ */
+void *
+set_memset_nodrain_norep(struct pool_set *set, void *dest, int c, size_t len)
+{
+	LOG(15, "set %p dest %p c 0x%02x len %zu", set, dest, c, len);
+
+	struct pool_replica *rep = set->replica[0];
+	//return rep->p_ops.memset_nodrain(dest, c, len);
+	return rep->p_ops.memset(dest, c, len);
+}
+
+/*
+ * set_memcpy_persist_norep -- (internal) memset w/o replication
+ */
+void *
+set_memcpy_persist_norep(struct pool_set *set, void *dest, const void *src,
+	size_t len)
+{
+	LOG(15, "set %p dest %p src %p len %zu", set, dest, src, len);
+
+	struct pool_replica *rep = set->replica[0];
+	//return rep->p_ops.memcpy_persist(dest, src, len);
+	return rep->p_ops.memcpy(dest, src, len);
+}
+
+/*
+ * set_memset_persist_norep -- (internal) memset w/o replication
+ */
+void *
+set_memset_persist_norep(struct pool_set *set, void *dest, int c, size_t len)
+{
+	LOG(15, "set %p dest %p c 0x%02x len %zu", set, dest, c, len);
+
+	struct pool_replica *rep = set->replica[0];
+	//return rep->p_ops.memset_persist(dest, c, len);
+	return rep->p_ops.memset(dest, c, len);
+}
+
+/*
+ * set_persist_norep -- (internal) persist w/o replication
+ */
+int
+set_persist_norep(struct pool_set *set, const void *addr, size_t len)
+{
+	LOG(15, "set %p addr %p len %zu", set, addr, len);
+
+	struct pool_replica *rep = set->replica[0];
+	return rep->p_ops.persist(addr, len);
+}
+
+/*
+ * set_flush_norep -- (internal) flush w/o replication
+ */
+int
+set_flush_norep(struct pool_set *set, const void *addr, size_t len)
+{
+	LOG(15, "set %p addr %p len %zu", set, addr, len);
+
+	struct pool_replica *rep = set->replica[0];
+	return rep->p_ops.flush(addr, len);
+}
+
+/*
+ * set_drain_norep -- (internal) drain w/o replication
+ */
+int
+set_drain_norep(struct pool_set *set)
+{
+	LOG(15, "set %p", set);
+
+	struct pool_replica *rep = set->replica[0];
+	return rep->p_ops.drain();
+}
+
+
+/*
+ * set_memcpy_persist -- memcpy with replication
+ */
+void *
+set_memcpy_persist(struct pool_set *set, void *dest, const void *src,
+	size_t len)
+{
+	LOG(15, "set %p dest %p src %p len %zu", set, dest, src, len);
+
+	unsigned lane = UINT_MAX;
+
+	//if (set->remote)
+	//	lane = lane_hold(set, NULL, LANE_ID);
+
+	struct pool_replica *rep = set->replica[0];
+	void *ret = rep->p_ops.memcpy(dest, src, len);
+	if (ret == NULL)
+		goto exit;
+
+	off_t off = (char *)dest - (char *)rep->base;
+
+	for (unsigned r = 1; r < set->nreplicas; r++) {
+		rep = set->replica[r];
+		void *rdest = (char *)rep->base + off;
+		if (rep->rpp == NULL) {
+			rep->p_ops.memcpy(rdest, src, len);
+		} else {
+			ret = rep->r_ops.persist(rep, rdest, len, lane);
+			//if (ret == NULL)
+				//obj_handle_remote_persist_error(pop);
+		}
+		if (ret == NULL)
+			goto exit;
+	}
+
+exit:
+	//if (set->remote)
+	//	lane_release(set);
+
+	return ret;
+}
+
+/*
+ * set_memset_persist -- memset with replication
+ */
+void *
+set_memset_persist(struct pool_set *set, void *dest, int c, size_t len)
+{
+	LOG(15, "set %p dest %p c 0x%02x len %zu", set, dest, c, len);
+
+	unsigned lane = UINT_MAX;
+
+	//if (set->remote)
+	//	lane = lane_hold(pop, NULL, LANE_ID);
+
+	struct pool_replica *rep = set->replica[0];
+	void *ret = rep->p_ops.memset(dest, c, len);
+	if (ret == NULL)
+		goto exit;
+
+	off_t off = (char *)dest - (char *)rep->base;
+
+	for (unsigned r = 1; r < set->nreplicas; r++) {
+		rep = set->replica[r];
+		void *rdest = (char *)rep->base + off;
+		if (rep->rpp == NULL) {
+			ret = rep->p_ops.memset(rdest, c, len);
+		} else {
+			ret = rep->r_ops.persist(rep, rdest, len, lane);
+			//if (ret == NULL)
+				//obj_handle_remote_persist_error(pop);
+		}
+		if (ret == NULL)
+			goto exit;
+	}
+
+exit:
+	//if (set->remote)
+	//	lane_release(set);
+
+	return ret;
+}
+
+void *
+set_memcpy_nodrain(struct pool_set *set, void *dest, const void *src,
+	size_t len)
+{
+	return set_memcpy_persist(set, dest, src, len);
+}
+
+void *
+set_memset_nodrain(struct pool_set *set, void *dest, int c, size_t len)
+{
+	return set_memset_persist(set, dest, c, len);
+}
+
+
+/*
+ * set_persist -- persist with replication
+ */
+int
+set_persist(struct pool_set *set, const void *addr, size_t len)
+{
+	LOG(15, "set %p addr %p len %zu", set, addr, len);
+
+	unsigned lane = UINT_MAX;
+
+	//if (set->remote)
+	//	lane = lane_hold(rep, NULL, LANE_ID); /* XXX */
+
+	struct pool_replica *rep = set->replica[0];
+	int ret = rep->p_ops.persist(addr, len);
+	if (ret < 0)
+		goto exit;
+
+	off_t off = (char *)addr - (char *)rep->base;
+
+	for (unsigned r = 1; r < set->nreplicas; r++) {
+		rep = set->replica[r];
+		void *raddr = (char *)rep->base + off;
+		if (rep->rpp == NULL) {
+			ret = rep->p_ops.persist(raddr, len);
+		} else {
+			if (rep->r_ops.persist(rep, raddr, len, lane) == NULL) {
+				//obj_handle_remote_persist_error(pop);
+				ret = -1;
+			}
+		}
+		if (ret < 0)
+			goto exit;
+	}
+
+exit:
+	//if (pop->remote)
+	//	lane_release(set);
+
+	return ret;
+}
+
+/*
+ * set_flush -- flush with replication
+ */
+int
+set_flush(struct pool_set *set, const void *addr, size_t len)
+{
+	LOG(15, "set %p addr %p len %zu", set, addr, len);
+
+	unsigned lane = UINT_MAX;
+
+	//if (set->remote)
+	//	lane = lane_hold(rep, NULL, LANE_ID); /* XXX */
+
+	struct pool_replica *rep = set->replica[0];
+	int ret = rep->p_ops.flush(addr, len);
+	if (ret < 0)
+		goto exit;
+
+	off_t off = (char *)addr - (char *)rep->base;
+
+	for (unsigned r = 1; r < set->nreplicas; r++) {
+		rep = set->replica[r];
+		void *raddr = (char *)rep->base + off;
+		if (rep->rpp == NULL) {
+			memcpy(raddr, addr, len);
+			ret = rep->p_ops.flush(raddr, len);
+		} else {
+			if (rep->r_ops.persist(rep, raddr, len, lane) == NULL) {
+				//obj_handle_remote_persist_error(pop);
+				ret = -1;
+			}
+		}
+		if (ret < 0)
+			goto exit;
+	}
+
+exit:
+	//if (set->remote)
+	//	lane_release(set);
+
+	return ret;
+}
+
+/*
+ * set_drain -- drain with replication
+ */
+int
+set_drain(struct pool_set *set)
+{
+	LOG(15, "set %p", set);
+
+	struct pool_replica *rep = set->replica[0];
+	int ret = rep->p_ops.drain();
+	if (ret < 0)
+		goto exit;
+
+	for (unsigned r = 1; r < set->nreplicas; r++) {
+		rep = set->replica[r];
+		ret = rep->p_ops.drain();
+		if (ret < 0)
+			goto exit;
+	}
+
+exit:
+	return ret;
+}
+
+
+int
+set_range_ro(struct pool_set *set, void *addr, size_t len)
+{
+	return util_range_ro(addr, len);
+}
+
+int
+set_range_rw(struct pool_set *set, void *addr, size_t len)
+{
+	return util_range_rw(addr, len);
+}
+int
+set_range_none(struct pool_set *set, void *addr, size_t len)
+{
+	return util_range_none(addr, len);
+}
+
+
+
+static int
+set_replicas_init(struct pool_set *set)
+{
+	for (unsigned r = 0; r < set->nreplicas; r++) {
+		struct pool_replica *rep = set->replica[r];
+		rep->base = rep->part[0].addr;
+
+		/* XXX - move to upper layer ?? */
+		//size_t rt_size = (uintptr_t)(rep + 1) - (uintptr_t)&rep->addr;
+		//VALGRIND_REMOVE_PMEM_MAPPING(&rep->addr, rt_size);
+
+		/* zero out runtime part of desc */
+		//memset(&rep->addr, 0, rt_size);
+
+		//rep->addr = rep->part[0]->addr;
+		//rep->rpp = NULL;
+
+		/* initialize replica runtime - is_pmem, funcs, ... */
+		if (rep->rpp) {
+			ASSERTne(rep->rpp, NULL);
+			ASSERTne(rep->node_addr, NULL);
+			ASSERTne(rep->pool_desc, NULL);
+
+			rep->p_ops = Remote_ops;
+
+			/* pop_desc - beginning of the pool's descriptor */
+			//rep->r_ops.base = (uintptr_t)rep->addr + sizeof(struct pool_hdr);
+
+			rep->r_ops.persist = set_remote_persist;
+			rep->r_ops.read = set_remote_read;
+			rep->r_ops.ctx = rep->rpp;
+			//rep->r_ops.base = rep->remote_base;
+		} else {
+			if (rep->is_pmem)
+				rep->p_ops = Pmem_ops;
+			else
+				rep->p_ops = Nonpmem_ops;
+		}
+	}
+
+	if (set->nreplicas > 1)
+		set->p_ops.ops = Rep_ops;
+	else
+		set->p_ops.ops = Norep_ops;
+
+	set->p_ops.base = set->replica[0]->base; /* XXX - base addr of master rep */
+	set->p_ops.pool_size = set->replica[0]->repsize; //rep->size; XXX
+
+	//rep->redo = redo_log_config_new(rep->addr, &rep->p_ops,
+	//		redo_log_check_offset, rep, REDO_NUM_ENTRIES);
+	//if (!rep->redo)
+	//	return -1;
+
+
+	return 0;
+}
+
 /*
  * util_remote_init -- initialize remote replication
  */
@@ -461,7 +1028,7 @@ util_poolset_free(struct pool_set *set)
 
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		struct pool_replica *rep = set->replica[r];
-		if (rep->remote == NULL) {
+		if (rep->rpp == NULL) {
 			/* only local replicas have paths */
 			for (unsigned p = 0; p < rep->nparts; p++) {
 				Free((void *)(rep->part[p].path));
@@ -469,9 +1036,9 @@ util_poolset_free(struct pool_set *set)
 		} else {
 			/* remote replica */
 			ASSERTeq(rep->nparts, 1);
-			Free(rep->remote->node_addr);
-			Free(rep->remote->pool_desc);
-			Free(rep->remote);
+			Free(rep->node_addr);
+			Free(rep->pool_desc);
+			Free(rep->rpp);
 		}
 		Free(set->replica[r]);
 	}
@@ -517,19 +1084,45 @@ util_replica_close_local(struct pool_replica *rep, int del)
 static void
 util_replica_close_remote(struct pool_replica *rep, unsigned r, int del)
 {
-	if (!rep->remote || !rep->remote->rpp)
+	if (!rep->rpp)
 		return;
 
 	LOG(4, "closing remote replica #%u", r);
-	Rpmem_close(rep->remote->rpp);
-	rep->remote->rpp = NULL;
+	Rpmem_close(rep->rpp);
+	rep->rpp = NULL;
 
 	if (del) {
 		LOG(4, "removing remote replica #%u", r);
-		int ret = Rpmem_remove(rep->remote->node_addr,
-			rep->remote->pool_desc, 0);
+		int ret = Rpmem_remove(rep->node_addr,
+			rep->pool_desc, 0);
 		if (ret) {
 			LOG(1, "!removing remote replica #%u failed", r);
+		}
+	}
+}
+
+/*
+ * set_replicas_cleanup -- (internal) free resources allocated for replicas
+ */
+static void
+set_replicas_cleanup(struct pool_set *set)
+{
+	LOG(3, "set %p", set);
+
+	for (unsigned r = 0; r < set->nreplicas; r++) {
+		struct pool_replica *rep = set->replica[r];
+
+		//PMEMobjpool *pop = rep->part[0].addr;
+		//redo_log_config_delete(pop->redo); /* XXX */
+
+		if (rep->rpp != NULL) {
+			/*
+			 * remote replica will be closed in util_poolset_close
+			 */
+			//rep->rpp = NULL;
+
+			Free(rep->node_addr);
+			Free(rep->pool_desc);
 		}
 	}
 }
@@ -544,13 +1137,15 @@ util_poolset_close(struct pool_set *set, int del)
 {
 	LOG(3, "set %p del %d", set, del);
 
+	set_replicas_cleanup(set);
+
 	int oerrno = errno;
 
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		util_replica_close(set, r);
 
 		struct pool_replica *rep = set->replica[r];
-		if (!rep->remote)
+		if (!rep->rpp)
 			util_replica_close_local(rep, del);
 		else
 			util_replica_close_remote(rep, r, del);
@@ -829,7 +1424,7 @@ util_poolset_set_size(struct pool_set *set)
 		 * Calculate pool size - choose the smallest replica size.
 		 * Ignore remote replicas.
 		 */
-		if (rep->remote == NULL && rep->repsize < set->poolsize)
+		if (rep->rpp == NULL && rep->repsize < set->poolsize)
 			set->poolsize = rep->repsize;
 	}
 	LOG(3, "pool size set to %zu", set->poolsize);
@@ -865,13 +1460,8 @@ util_parse_add_remote_replica(struct pool_set **setp, char *node_addr,
 	struct pool_replica *rep = set->replica[set->nreplicas - 1];
 	ASSERTne(rep, NULL);
 
-	rep->remote = Zalloc(sizeof(struct remote_replica));
-	if (rep->remote == NULL) {
-		ERR("!Malloc");
-		return -1;
-	}
-	rep->remote->node_addr = node_addr;
-	rep->remote->pool_desc = pool_desc;
+	rep->node_addr = node_addr;
+	rep->pool_desc = pool_desc;
 	set->remote = 1;
 
 	return 0;
@@ -1087,7 +1677,7 @@ util_poolset_single(const char *path, size_t filesize, int create)
 	rep->nparts = 1;
 
 	/* it does not have a remote replica */
-	rep->remote = NULL;
+	rep->rpp = NULL;
 	set->remote = 0;
 
 	/* round down to the nearest mapping alignment boundary */
@@ -1239,26 +1829,26 @@ util_poolset_remote_open(struct pool_replica *rep, unsigned repidx,
 		struct rpmem_pool_attr rpmem_attr_create;
 		util_remote_create_attr(rep->part[0].hdr, &rpmem_attr_create);
 
-		rep->remote->rpp = Rpmem_create(rep->remote->node_addr,
-						rep->remote->pool_desc,
+		rep->rpp = Rpmem_create(rep->node_addr,
+						rep->pool_desc,
 						pool_addr,
 						pool_size,
 						&remote_nlanes,
 						&rpmem_attr_create);
-		if (rep->remote->rpp == NULL) {
+		if (rep->rpp == NULL) {
 			ERR("creating remote replica #%u failed", repidx);
 			return -1;
 		}
 	} else { /* open */
 		struct rpmem_pool_attr rpmem_attr_open;
 
-		rep->remote->rpp = Rpmem_open(rep->remote->node_addr,
-						rep->remote->pool_desc,
+		rep->rpp = Rpmem_open(rep->node_addr,
+						rep->pool_desc,
 						pool_addr,
 						pool_size,
 						&remote_nlanes,
 						&rpmem_attr_open);
-		if (rep->remote->rpp == NULL) {
+		if (rep->rpp == NULL) {
 			ERR("opening remote replica #%u failed", repidx);
 			return -1;
 		}
@@ -1283,7 +1873,7 @@ util_poolset_files_local(struct pool_set *set, size_t minsize, int create)
 
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		struct pool_replica *rep = set->replica[r];
-		if (!rep->remote) {
+		if (!rep->rpp) {
 			for (unsigned p = 0; p < rep->nparts; p++) {
 				if (util_part_open(&rep->part[p], minsize,
 							create))
@@ -1349,7 +1939,7 @@ util_poolset_files_remote(struct pool_set *set, size_t minsize,
 
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		struct pool_replica *rep = set->replica[r];
-		if (rep->remote) {
+		if (rep->rpp) {
 			if (util_poolset_remote_replica_open(set, r,
 				minsize, create, nlanes))
 				return -1;
@@ -1569,7 +2159,7 @@ util_header_check(struct pool_set *set, unsigned repidx, unsigned partidx,
 	memcpy(&hdr, hdrp, sizeof(hdr));
 
 	/* local copy of a remote header does not need to be converted */
-	if (rep->remote == NULL && !util_convert_hdr(&hdr)) {
+	if (rep->rpp == NULL && !util_convert_hdr(&hdr)) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -1914,7 +2504,7 @@ util_replica_create_remote(struct pool_set *set, unsigned repidx, int flags,
 
 	struct pool_replica *rep = set->replica[repidx];
 
-	ASSERTne(rep->remote, NULL);
+	ASSERTne(rep->rpp, NULL);
 	ASSERTne(rep->part, NULL);
 	ASSERTeq(rep->nparts, 1);
 
@@ -1965,7 +2555,7 @@ util_replica_create(struct pool_set *set, unsigned repidx, int flags,
 		ht->ro_compat_features,
 		prev_repl_uuid, next_repl_uuid);
 
-	if (set->replica[repidx]->remote == NULL) {
+	if (set->replica[repidx]->rpp == NULL) {
 		/* local replica */
 		if (util_replica_create_local(set, repidx, flags, ht,
 					prev_repl_uuid, next_repl_uuid) != 0)
@@ -1990,7 +2580,7 @@ util_replica_close(struct pool_set *set, unsigned repidx)
 	LOG(3, "set %p repidx %u", set, repidx);
 	struct pool_replica *rep = set->replica[repidx];
 
-	if (rep->remote == NULL) {
+	if (rep->rpp == NULL) {
 		for (unsigned p = 0; p < rep->nparts; p++)
 			util_unmap_hdr(&rep->part[p]);
 		util_unmap_part(&rep->part[0]);
@@ -2131,6 +2721,9 @@ util_pool_create_uuids(struct pool_set **setp, const char *path,
 		if (ret != 0)
 			goto err_create;
 	}
+
+	if (set_replicas_init(set) < 0)
+		goto err_create;
 
 	return 0;
 
@@ -2298,7 +2891,7 @@ util_replica_open_remote(struct pool_set *set, unsigned repidx, int flags)
 
 	struct pool_replica *rep = set->replica[repidx];
 
-	ASSERTne(rep->remote, NULL);
+	ASSERTne(rep->rpp, NULL);
 	ASSERTne(rep->part, NULL);
 	ASSERTeq(rep->nparts, 1);
 
@@ -2329,7 +2922,7 @@ util_replica_open(struct pool_set *set, unsigned repidx, int flags)
 {
 	LOG(3, "set %p repidx %u flags %d", set, repidx, flags);
 
-	if (set->replica[repidx]->remote == NULL)
+	if (set->replica[repidx]->rpp == NULL)
 		return util_replica_open_local(set, repidx, flags);
 	else
 		return util_replica_open_remote(set, repidx, flags);
@@ -2345,7 +2938,7 @@ util_unmap_all_hdrs(struct pool_set *set)
 
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		struct pool_replica *rep = set->replica[r];
-		if (rep->remote == NULL) {
+		if (rep->rpp == NULL) {
 			for (unsigned p = 0; p < rep->nparts; p++)
 				util_unmap_hdr(&rep->part[p]);
 		} else {
@@ -2442,6 +3035,9 @@ util_pool_open_nocheck(struct pool_set *set, int rdonly)
 			goto err_replica;
 	}
 
+	if (set_replicas_init(set) < 0)
+		goto err_replica;
+
 	util_unmap_all_hdrs(set);
 
 	return 0;
@@ -2516,6 +3112,9 @@ util_pool_open(struct pool_set **setp, const char *path, int rdonly,
 		if (ret != 0)
 			goto err_replica;
 	}
+
+	if (set_replicas_init(set) < 0)
+		goto err_replica;
 
 	/* check headers, check UUID's, check replicas linkage */
 	if (util_replica_check(set, ht))
@@ -2691,10 +3290,10 @@ util_poolset_foreach_part(const char *path,
 
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		struct part_file part;
-		if (set->replica[r]->remote) {
+		if (set->replica[r]->rpp) {
 			part.is_remote = 1;
-			part.node_addr = set->replica[r]->remote->node_addr;
-			part.pool_desc = set->replica[r]->remote->pool_desc;
+			part.node_addr = set->replica[r]->node_addr;
+			part.pool_desc = set->replica[r]->pool_desc;
 			ret = cb(&part, arg);
 			if (ret)
 				goto out;

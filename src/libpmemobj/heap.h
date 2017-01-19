@@ -65,12 +65,12 @@
 #define BIT_IS_CLR(a, i)	(!((a) & (1ULL << (i))))
 
 int heap_boot(struct palloc_heap *heap, void *heap_start, uint64_t heap_size,
-		void *base, struct pmem_ops *p_ops);
-int heap_init(void *heap_start, uint64_t heap_size, struct pmem_ops *p_ops);
+		void *base, struct pool_set *set);
+int heap_init(void *heap_start, uint64_t heap_size, struct pool_set *set);
 void heap_cleanup(struct palloc_heap *heap);
 int heap_check(void *heap_start, uint64_t heap_size);
 int heap_check_remote(void *heap_start, uint64_t heap_size,
-		struct remote_ops *ops);
+		struct rep_rpmem_ops *ops);
 int heap_buckets_init(struct palloc_heap *heap);
 
 struct bucket *heap_get_best_bucket(struct palloc_heap *heap, size_t size);

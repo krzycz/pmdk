@@ -268,7 +268,7 @@ list_fill_entry_persist(PMEMobjpool *pop, struct list_entry *entry_ptr,
 	entry_ptr->pe_prev.off = prev_offset;
 	VALGRIND_REMOVE_FROM_TX(entry_ptr, sizeof(*entry_ptr));
 
-	pmemops_persist(&pop->p_ops, entry_ptr, sizeof(*entry_ptr));
+	pmemops_persist(pop->set, entry_ptr, sizeof(*entry_ptr));
 }
 
 /*
@@ -283,7 +283,6 @@ list_fill_entry_redo_log(PMEMobjpool *pop,
 	uint64_t next_offset, uint64_t prev_offset, int set_uuid)
 {
 	LOG(15, NULL);
-	struct pmem_ops *ops = &pop->p_ops;
 
 	ASSERTne(args->entry_ptr, NULL);
 	ASSERTne(args->obj_doffset, 0);
@@ -302,7 +301,7 @@ list_fill_entry_redo_log(PMEMobjpool *pop,
 		VALGRIND_REMOVE_FROM_TX(
 				&(args->entry_ptr->pe_prev.pool_uuid_lo),
 				sizeof(args->entry_ptr->pe_prev.pool_uuid_lo));
-		pmemops_persist(ops, args->entry_ptr, sizeof(*args->entry_ptr));
+		pmemops_persist(pop->set, args->entry_ptr, sizeof(*args->entry_ptr));
 	} else {
 		ASSERTeq(args->entry_ptr->pe_next.pool_uuid_lo, pop->uuid_lo);
 		ASSERTeq(args->entry_ptr->pe_prev.pool_uuid_lo, pop->uuid_lo);

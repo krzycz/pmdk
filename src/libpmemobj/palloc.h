@@ -42,6 +42,7 @@
 
 #include "memops.h"
 #include "redo.h"
+#include "set.h"
 
 /*
  * Number of bytes between end of allocation header and beginning of user data.
@@ -49,7 +50,8 @@
 #define PALLOC_DATA_OFF 48
 
 struct palloc_heap {
-	struct pmem_ops p_ops;
+	//struct pmem_ops p_ops;
+	struct pool_set *set;
 	struct heap_layout *layout;
 	struct heap_rt *rt;
 	uint64_t size;
@@ -70,14 +72,14 @@ uint64_t palloc_next(struct palloc_heap *heap, uint64_t off);
 size_t palloc_usable_size(struct palloc_heap *heap, uint64_t off);
 
 int palloc_boot(struct palloc_heap *heap, void *heap_start,
-		uint64_t heap_size, void *base, struct pmem_ops *p_ops);
+		uint64_t heap_size, void *base, struct pool_set *set);
 int palloc_buckets_init(struct palloc_heap *heap);
 
-int palloc_init(void *heap_start, uint64_t heap_size, struct pmem_ops *p_ops);
+int palloc_init(void *heap_start, uint64_t heap_size, struct pool_set *set);
 void *palloc_heap_end(struct palloc_heap *h);
 int palloc_heap_check(void *heap_start, uint64_t heap_size);
 int palloc_heap_check_remote(void *heap_start, uint64_t heap_size,
-		struct remote_ops *ops);
+		struct rep_rpmem_ops *ops);
 void palloc_heap_cleanup(struct palloc_heap *heap);
 
 /* foreach callback, terminates iteration if return value is non-zero */

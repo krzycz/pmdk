@@ -44,6 +44,7 @@
 #include "pool_hdr.h"
 #include "pmalloc.h"
 #include "redo.h"
+#include "set.h"
 
 #define PMEMOBJ_LOG_PREFIX "libpmemobj"
 #define PMEMOBJ_LOG_LEVEL_VAR "PMEMOBJ_LOG_LEVEL"
@@ -101,15 +102,6 @@
 #define OOB_OFFSET_OF(oid, field)\
 	((oid).off - OBJ_OOB_SIZE + offsetof(struct oob_header, field))
 
-typedef void (*persist_local_fn)(const void *, size_t);
-typedef void (*flush_local_fn)(const void *, size_t);
-typedef void (*drain_local_fn)(void);
-typedef void *(*memcpy_local_fn)(void *dest, const void *src, size_t len);
-typedef void *(*memset_local_fn)(void *dest, int c, size_t len);
-
-typedef void *(*persist_remote_fn)(PMEMobjpool *pop, const void *addr,
-					size_t len, unsigned lane);
-
 extern unsigned long long Pagesize;
 
 typedef uint64_t type_num_t;
@@ -134,38 +126,16 @@ struct pmemobjpool {
 	/* some run-time state, allocated out of memory pool... */
 	void *addr;		/* mapped region */
 	size_t size;		/* size of mapped region */
-	int is_pmem;		/* true if pool is PMEM */
 	int rdonly;		/* true if pool is opened read-only */
 	struct palloc_heap heap;
 	struct lane_descriptor lanes_desc;
 	uint64_t uuid_lo;
-	int is_dax;		/* true if mapped on device dax */
 
 	struct pool_set *set;		/* pool set info */
-	struct pmemobjpool *replica;	/* next replica */
-	struct redo_ctx *redo;
 
-	/* per-replica functions: pmem or non-pmem */
-	persist_local_fn persist_local;	/* persist function */
-	flush_local_fn flush_local;	/* flush function */
-	drain_local_fn drain_local;	/* drain function */
-	memcpy_local_fn memcpy_persist_local; /* persistent memcpy function */
-	memset_local_fn memset_persist_local; /* persistent memset function */
-
-	/* for 'master' replica: with or without data replication */
-	struct pmem_ops p_ops;
+	struct redo_ctx *redo;		/* XXX */
 
 	PMEMmutex rootlock;	/* root object lock */
-	int is_master_replica;
-	int has_remote_replicas;
-
-	/* remote replica section */
-	void *rpp;	/* RPMEMpool opaque handle if it is a remote replica */
-	uintptr_t remote_base;	/* beginning of the pool's descriptor */
-	char *node_addr;	/* address of a remote node */
-	char *pool_desc;	/* descriptor of a poolset */
-
-	persist_remote_fn persist_remote; /* remote persist function */
 
 	int vg_boot;
 

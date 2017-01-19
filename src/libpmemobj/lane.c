@@ -49,6 +49,7 @@
 #include "util.h"
 #include "obj.h"
 #include "valgrind_internal.h"
+#include "set.h"
 
 static pthread_key_t Lane_info_key;
 
@@ -415,7 +416,7 @@ lane_hold(PMEMobjpool *pop, struct lane_section **section,
 	 * executed using RLANE_DEFAULT.
 	 */
 	if (unlikely(!pop->lanes_desc.runtime_nlanes)) {
-		ASSERT(pop->has_remote_replicas);
+		ASSERT(pop->set->remote);
 		if (section != NULL)
 			FATAL("cannot obtain section before lane's init");
 		return RLANE_DEFAULT;
@@ -449,7 +450,7 @@ void
 lane_release(PMEMobjpool *pop)
 {
 	if (unlikely(!pop->lanes_desc.runtime_nlanes)) {
-		ASSERT(pop->has_remote_replicas);
+		ASSERT(pop->set->remote);
 		return;
 	}
 

@@ -228,7 +228,7 @@ alloc_prep_block(struct palloc_heap *heap, struct memory_block m,
 	}
 
 	/* flushes both the alloc and oob headers */
-	pmemops_persist(&heap->p_ops, block_data, ALLOC_OFF);
+	pmemops_persist(heap->set, block_data, ALLOC_OFF);
 
 	/*
 	 * To avoid determining the user data pointer twice this method is also
@@ -451,7 +451,7 @@ palloc_operation(struct palloc_heap *heap,
 		size_t to_cpy = old_size > sizeh ? sizeh : old_size;
 		VALGRIND_ADD_TO_TX(PMALLOC_OFF_TO_PTR(heap, offset_value),
 			to_cpy - ALLOC_OFF);
-		pmemops_memcpy_persist(&heap->p_ops,
+		pmemops_memcpy_persist(heap->set,
 			PMALLOC_OFF_TO_PTR(heap, offset_value),
 			PMALLOC_OFF_TO_PTR(heap, off),
 			to_cpy - ALLOC_OFF);
@@ -592,9 +592,9 @@ palloc_next(struct palloc_heap *heap, uint64_t off)
  */
 int
 palloc_boot(struct palloc_heap *heap, void *heap_start, uint64_t heap_size,
-		void *base, struct pmem_ops *p_ops)
+		void *base, struct pool_set *set)
 {
-	return heap_boot(heap, heap_start, heap_size, base, p_ops);
+	return heap_boot(heap, heap_start, heap_size, base, set);
 }
 
 /*
@@ -610,9 +610,9 @@ palloc_buckets_init(struct palloc_heap *heap)
  * palloc_init -- initializes palloc heap
  */
 int
-palloc_init(void *heap_start, uint64_t heap_size, struct pmem_ops *p_ops)
+palloc_init(void *heap_start, uint64_t heap_size, struct pool_set *set)
 {
-	return heap_init(heap_start, heap_size, p_ops);
+	return heap_init(heap_start, heap_size, set);
 }
 
 /*
@@ -638,7 +638,7 @@ palloc_heap_check(void *heap_start, uint64_t heap_size)
  */
 int
 palloc_heap_check_remote(void *heap_start, uint64_t heap_size,
-		struct remote_ops *ops)
+		struct rep_rpmem_ops *ops)
 {
 	return heap_check_remote(heap_start, heap_size, ops);
 }
