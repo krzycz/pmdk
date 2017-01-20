@@ -67,40 +67,63 @@
 
 #define PMEMOBJ_POOL_HDR_SIZE	8192
 
-static void
-pmem_drain_nop(void)
+/*
+ * obj_persist_pmem -- pmemobj version of pmem_persist w/o replication
+ */
+static int
+obj_persist_pmem(const void *ctx, const void *addr, size_t len)
 {
+	pmem_persist(addr, len);
+	return 0;
 }
 
 /*
- * obj_persist -- pmemobj version of pmem_persist w/o replication
+ * obj_flush_pmem -- pmemobj version of pmem_flush w/o replication
  */
-static void
-obj_persist(void *ctx, const void *addr, size_t len)
+static int
+obj_flush_pmem(const void *ctx, const void *addr, size_t len)
 {
-	PMEMobjpool *pop = ctx;
-	pop->persist_local(addr, len);
+	pmem_flush(addr, len);
+	return 0;
 }
 
 /*
- * obj_flush -- pmemobj version of pmem_flush w/o replication
+ * obj_drain_pmem -- pmemobj version of pmem_drain w/o replication
  */
-static void
-obj_flush(void *ctx, const void *addr, size_t len)
+static int
+obj_drain_pmem(const void *ctx)
 {
-	PMEMobjpool *pop = ctx;
-	pop->flush_local(addr, len);
+	pmem_drain();
+	return 0;
 }
 
 /*
- * obj_drain -- pmemobj version of pmem_drain w/o replication
+ * obj_persist_nonpmem -- pmemobj version of pmem_persist w/o replication
  */
-static void
-obj_drain(void *ctx)
+static int
+obj_persist_nonpmem(const void *ctx, const void *addr, size_t len)
 {
-	PMEMobjpool *pop = ctx;
-	pop->drain_local();
+	return pmem_msync(addr, len);
 }
+
+/*
+ * obj_flush_nonpmem -- pmemobj version of pmem_flush w/o replication
+ */
+static int
+obj_flush_nonpmem(const void *ctx, const void *addr, size_t len)
+{
+	return pmem_msync(addr, len);
+}
+
+/*
+ * obj_drain_nonpmem -- pmemobj version of pmem_drain w/o replication
+ */
+static int
+obj_drain_nonpmem(const void *ctx)
+{
+	return 0;
+}
+
 
 static int
 redo_log_check_offset(void *ctx, uint64_t offset)
@@ -127,28 +150,26 @@ pmemobj_open_mock(const char *fname, size_t redo_size)
 	VALGRIND_REMOVE_PMEM_MAPPING((char *)addr + sizeof(pop->hdr), 4096);
 	pop->addr = addr;
 	pop->size = size;
-	pop->is_pmem = is_pmem;
 	pop->rdonly = 0;
 
-	if (pop->is_pmem) {
-		pop->persist_local = pmem_persist;
-		pop->flush_local = pmem_flush;
-		pop->drain_local = pmem_drain;
+	pop->set = MALLOC(sizeof(struct pool_set));
+
+	if (is_pmem) {
+		pop->set->p_ops.ops.persist = obj_persist_pmem;
+		pop->set->p_ops.ops.flush = obj_flush_pmem;
+		pop->set->p_ops.ops.drain = obj_drain_pmem;
 	} else {
-		pop->persist_local = (persist_local_fn)pmem_msync;
-		pop->flush_local = (persist_local_fn)pmem_msync;
-		pop->drain_local = pmem_drain_nop;
+		pop->set->p_ops.ops.persist = obj_persist_nonpmem;
+		pop->set->p_ops.ops.flush = obj_flush_nonpmem;
+		pop->set->p_ops.ops.drain = obj_drain_nonpmem;
 	}
 
-	pop->p_ops.persist = obj_persist;
-	pop->p_ops.flush = obj_flush;
-	pop->p_ops.drain = obj_drain;
-	pop->p_ops.base = pop;
+	pop->set->p_ops.base = pop;
 
 	pop->heap_offset = PMEMOBJ_POOL_HDR_SIZE + redo_size;
 	pop->heap_size = pop->size - pop->heap_offset;
 
-	pop->redo = redo_log_config_new(pop->addr, &pop->p_ops,
+	pop->redo = redo_log_config_new(pop->addr, pop->set,
 			redo_log_check_offset, pop, REDO_NUM_ENTRIES);
 
 	return pop;
@@ -159,6 +180,7 @@ pmemobj_close_mock(PMEMobjpool *pop)
 {
 	redo_log_config_delete(pop->redo);
 
+	FREE(pop->set);
 	UT_ASSERTeq(pmem_unmap(pop, pop->size), 0);
 }
 

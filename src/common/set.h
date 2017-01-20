@@ -222,6 +222,13 @@ extern int (*Rpmem_remove)(const char *target,
 		const char *pool_set_name, int flags);
 
 
+extern struct rep_pmem_ops Pmem_ops;
+extern struct rep_pmem_ops Nonpmem_ops;
+extern struct rep_pmem_ops Remote_ops;
+
+extern struct set_pmem_ops Rep_ops;
+extern struct set_pmem_ops Norep_ops;
+
 /*
  * non-pmem variants of memory ops - for local replicas, not on PMEM
  */

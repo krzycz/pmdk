@@ -87,7 +87,7 @@ static pthread_mutex_t Remote_lock;
 static int Remote_usage_counter;
 
 
-static struct rep_pmem_ops Pmem_ops = {
+struct rep_pmem_ops Pmem_ops = {
 	(persist_local_fn)pmem_persist, /* XXX - void */
 	(flush_local_fn)pmem_flush,
 	(drain_local_fn)pmem_drain,
@@ -95,7 +95,7 @@ static struct rep_pmem_ops Pmem_ops = {
 	pmem_memset_persist
 };
 
-static struct rep_pmem_ops Nonpmem_ops = {
+struct rep_pmem_ops Nonpmem_ops = {
 	set_persist_nonpmem,
 	set_flush_nonpmem,
 	set_drain_nonpmem,
@@ -103,7 +103,7 @@ static struct rep_pmem_ops Nonpmem_ops = {
 	set_memset_persist_nonpmem
 };
 
-static struct rep_pmem_ops Remote_ops = {
+struct rep_pmem_ops Remote_ops = {
 	NULL,
 	NULL,
 	NULL,
@@ -111,7 +111,7 @@ static struct rep_pmem_ops Remote_ops = {
 	NULL,
 };
 
-static struct set_pmem_ops Rep_ops = {
+struct set_pmem_ops Rep_ops = {
 	(persist_fn)set_persist,
 	(flush_fn)set_flush,
 	(drain_fn)set_drain,
@@ -121,7 +121,7 @@ static struct set_pmem_ops Rep_ops = {
 	(memset_fn)set_memset_nodrain,
 };
 
-static struct set_pmem_ops Norep_ops = {
+struct set_pmem_ops Norep_ops = {
 	(persist_fn)set_persist_norep,
 	(flush_fn)set_flush_norep,
 	(drain_fn)set_drain_norep,

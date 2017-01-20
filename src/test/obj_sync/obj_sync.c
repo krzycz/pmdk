@@ -375,8 +375,8 @@ main(int argc, char *argv[])
 
 	/* first pool open */
 	mock_open_pool(&Mock_pop);
-	Mock_pop.p_ops.persist = obj_sync_persist;
-	Mock_pop.p_ops.base = &Mock_pop;
+	Mock_pop.set->p_ops.ops.persist = (persist_fn)obj_sync_persist;
+	Mock_pop.set->p_ops.base = &Mock_pop;
 	Test_obj = (struct mock_obj *)MALLOC(sizeof(struct mock_obj));
 	/* zero-initialize the test object */
 	pmemobj_mutex_zero(&Mock_pop, &Test_obj->mutex);

@@ -44,29 +44,29 @@
  */
 FUNC_MOCK(pmalloc, int, PMEMobjpool *pop, uint64_t *ptr, size_t size)
 	FUNC_MOCK_RUN_DEFAULT {
-		struct pmem_ops *p_ops = &Pop->p_ops;
+		struct pool_set *set = Pop->set;
 		size = 2 * (size - OOB_OFF) + OOB_OFF;
 		uint64_t *alloc_size = (uint64_t *)((uintptr_t)Pop
 				+ *Heap_offset);
 		*alloc_size = size;
-		pmemops_persist(p_ops, alloc_size, sizeof(*alloc_size));
+		pmemops_persist(set, alloc_size, sizeof(*alloc_size));
 
 		*ptr = *Heap_offset + sizeof(uint64_t);
-		pmemops_persist(p_ops, ptr, sizeof(*ptr));
+		pmemops_persist(set, ptr, sizeof(*ptr));
 
 		struct oob_item *item =
 			(struct oob_item *)((uintptr_t)Pop + *ptr);
 
 		*ptr += OOB_OFF;
 		item->item.id = *Id;
-		pmemops_persist(p_ops, &item->item.id, sizeof(item->item.id));
+		pmemops_persist(set, &item->item.id, sizeof(item->item.id));
 
 		(*Id)++;
-		pmemops_persist(p_ops, Id, sizeof(*Id));
+		pmemops_persist(set, Id, sizeof(*Id));
 
 		*Heap_offset = *Heap_offset + sizeof(uint64_t) +
 			size + OOB_OFF;
-		pmemops_persist(p_ops, Heap_offset, sizeof(*Heap_offset));
+		pmemops_persist(set, Heap_offset, sizeof(*Heap_offset));
 
 		UT_OUT("pmalloc(id = %d)", item->item.id);
 		return 0;
@@ -84,7 +84,7 @@ FUNC_MOCK(pfree, void, PMEMobjpool *pop, uint64_t *ptr)
 			(struct oob_item *)((uintptr_t)Pop + *ptr - OOB_OFF);
 		UT_OUT("pfree(id = %d)", item->item.id);
 		*ptr = 0;
-		pmemops_persist(&Pop->p_ops, ptr, sizeof(*ptr));
+		pmemops_persist(Pop->set, ptr, sizeof(*ptr));
 
 		return;
 	}
@@ -99,18 +99,18 @@ FUNC_MOCK_END
 FUNC_MOCK(pmalloc_construct, int, PMEMobjpool *pop, uint64_t *off,
 	size_t size, palloc_constr constructor, void *arg)
 	FUNC_MOCK_RUN_DEFAULT {
-		struct pmem_ops *p_ops = &Pop->p_ops;
+		struct pool_set *set = Pop->set;
 		size = 2 * (size - OOB_OFF) + OOB_OFF;
 		uint64_t *alloc_size = (uint64_t *)((uintptr_t)Pop +
 				*Heap_offset);
 		*alloc_size = size;
-		pmemops_persist(p_ops, alloc_size, sizeof(*alloc_size));
+		pmemops_persist(set, alloc_size, sizeof(*alloc_size));
 
 		*off = *Heap_offset + sizeof(uint64_t) + OOB_OFF;
-		pmemops_persist(p_ops, off, sizeof(*off));
+		pmemops_persist(set, off, sizeof(*off));
 
 		*Heap_offset = *Heap_offset + sizeof(uint64_t) + size;
-		pmemops_persist(p_ops, Heap_offset, sizeof(*Heap_offset));
+		pmemops_persist(set, Heap_offset, sizeof(*Heap_offset));
 
 		void *ptr = (void *)((uintptr_t)Pop + *off);
 		constructor(pop, ptr, size, arg);
@@ -130,7 +130,7 @@ FUNC_MOCK(prealloc, int, PMEMobjpool *pop, uint64_t *off, size_t size)
 				*off + OOB_OFF);
 		if (*alloc_size >= size) {
 			*alloc_size = size;
-			pmemops_persist(&Pop->p_ops, alloc_size,
+			pmemops_persist(Pop->set, alloc_size,
 					sizeof(*alloc_size));
 
 			UT_OUT("prealloc(id = %d, size = %zu) = true",

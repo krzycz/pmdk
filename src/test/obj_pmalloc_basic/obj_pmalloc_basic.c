@@ -40,6 +40,7 @@
 #include "pmalloc.h"
 #include "unittest.h"
 #include "valgrind_internal.h"
+#include "set.h"
 
 #define MOCK_POOL_SIZE PMEMOBJ_MIN_POOL
 #define TEST_MEGA_ALLOC_SIZE (1024 * 1024)
@@ -63,56 +64,46 @@ static struct mock_pop *addr;
 static PMEMobjpool *mock_pop;
 
 /*
- * drain_empty -- (internal) empty function for drain on non-pmem memory
- */
-static void
-drain_empty(void)
-{
-	/* do nothing */
-}
-
-/*
  * obj_persist -- pmemobj version of pmem_persist w/o replication
  */
-static void
-obj_persist(void *ctx, const void *addr, size_t len)
+static int
+obj_persist(const void *ctx, const void *addr, size_t len)
 {
-	PMEMobjpool *pop = ctx;
-	pop->persist_local(addr, len);
+	return pmem_msync(addr, len);
 }
 
 /*
  * obj_flush -- pmemobj version of pmem_flush w/o replication
  */
-static void
-obj_flush(void *ctx, const void *addr, size_t len)
+static int
+obj_flush(const void *ctx, const void *addr, size_t len)
 {
-	PMEMobjpool *pop = ctx;
-	pop->flush_local(addr, len);
+	return pmem_msync(addr, len);
 }
 
 /*
  * obj_drain -- pmemobj version of pmem_drain w/o replication
  */
-static void
-obj_drain(void *ctx)
+static int
+obj_drain(const void *ctx)
 {
-	PMEMobjpool *pop = ctx;
-	pop->drain_local();
+	/* do nothing */
+	return 0;
 }
 
 /*
  * obj_memcpy -- pmemobj version of memcpy w/o replication
  */
 static void *
-obj_memcpy(void *ctx, void *dest, const void *src, size_t len)
+obj_memcpy(const void *ctx, void *dest, const void *src, size_t len)
 {
-	memcpy(dest, src, len);
+	return memcpy(dest, src, len);
+	//UT_ASSERTeq(pmem_msync(ptr, sz), 0);
 	return dest;
 }
 
 static void *
-obj_memset(void *ctx, void *ptr, int c, size_t sz)
+obj_memset(const void *ctx, void *ptr, int c, size_t sz)
 {
 	memset(ptr, c, sz);
 	UT_ASSERTeq(pmem_msync(ptr, sz), 0);
@@ -183,34 +174,30 @@ test_mock_pool_allocs()
 	mock_pop->addr = addr;
 	mock_pop->size = MOCK_POOL_SIZE;
 	mock_pop->rdonly = 0;
-	mock_pop->is_pmem = 0;
 	mock_pop->heap_offset = offsetof(struct mock_pop, ptr);
 	UT_ASSERTeq(mock_pop->heap_offset % Ut_pagesize, 0);
 	mock_pop->heap_size = MOCK_POOL_SIZE - mock_pop->heap_offset;
 	mock_pop->nlanes = 1;
 	mock_pop->lanes_offset = sizeof(PMEMobjpool);
 
-	mock_pop->persist_local = (persist_local_fn)pmem_msync;
-	mock_pop->flush_local = (flush_local_fn)pmem_msync;
-	mock_pop->drain_local = drain_empty;
+	mock_pop->set = MALLOC(sizeof(struct pool_set));
+	mock_pop->set->p_ops.ops.drain = obj_drain;
+	mock_pop->set->p_ops.ops.flush = obj_flush;
+	mock_pop->set->p_ops.ops.persist = obj_persist;
+	mock_pop->set->p_ops.ops.memcpy_persist = obj_memcpy;
+	mock_pop->set->p_ops.ops.memset_persist = obj_memset;
+	mock_pop->set->p_ops.base = mock_pop;
+	mock_pop->set->p_ops.pool_size = mock_pop->size;
 
-	mock_pop->p_ops.persist = obj_persist;
-	mock_pop->p_ops.flush = obj_flush;
-	mock_pop->p_ops.drain = obj_drain;
-	mock_pop->p_ops.memcpy_persist = obj_memcpy;
-	mock_pop->p_ops.memset_persist = obj_memset;
-	mock_pop->p_ops.base = mock_pop;
-	mock_pop->p_ops.pool_size = mock_pop->size;
-
-	mock_pop->redo = redo_log_config_new(addr, &mock_pop->p_ops,
+	mock_pop->redo = redo_log_config_new(addr, mock_pop->set,
 			redo_log_check_offset, mock_pop, REDO_NUM_ENTRIES);
 
 	void *heap_start = (char *)mock_pop + mock_pop->heap_offset;
 	uint64_t heap_size = mock_pop->heap_size;
 
-	heap_init(heap_start, heap_size, &mock_pop->p_ops);
+	heap_init(heap_start, heap_size, mock_pop->set);
 	heap_boot(&mock_pop->heap, heap_start, heap_size, mock_pop,
-			&mock_pop->p_ops);
+			mock_pop->set);
 	heap_buckets_init(&mock_pop->heap);
 
 	/* initialize runtime lanes structure */
@@ -237,6 +224,7 @@ test_mock_pool_allocs()
 	lane_cleanup(mock_pop);
 	heap_cleanup(&mock_pop->heap);
 
+	FREE(mock_pop->set);
 	MUNMAP_ANON_ALIGNED(addr, MOCK_POOL_SIZE);
 }
 

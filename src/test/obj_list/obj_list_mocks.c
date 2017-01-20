@@ -37,42 +37,60 @@
 #include "obj_list.h"
 
 /*
- * pmem_drain_nop -- no operation for drain on non-pmem memory
+ * obj_persist_pmem -- pmemobj version of pmem_persist w/o replication
  */
-static void
-pmem_drain_nop(void)
+static int
+obj_persist_pmem(const void *ctx, const void *addr, size_t len)
 {
-	/* nop */
+	pmem_persist(addr, len);
+	return 0;
 }
 
 /*
- * obj_persist -- pmemobj version of pmem_persist w/o replication
+ * obj_flush_pmem -- pmemobj version of pmem_flush w/o replication
  */
-static void
-obj_persist(void *ctx, const void *addr, size_t len)
+static int
+obj_flush_pmem(const void *ctx, const void *addr, size_t len)
 {
-	PMEMobjpool *pop = (PMEMobjpool *)ctx;
-	pop->persist_local(addr, len);
+	pmem_flush(addr, len);
+	return 0;
 }
 
 /*
- * obj_flush -- pmemobj version of pmem_flush w/o replication
+ * obj_drain_pmem -- pmemobj version of pmem_drain w/o replication
  */
-static void
-obj_flush(void *ctx, const void *addr, size_t len)
+static int
+obj_drain_pmem(const void *ctx)
 {
-	PMEMobjpool *pop = (PMEMobjpool *)ctx;
-	pop->flush_local(addr, len);
+	pmem_drain();
+	return 0;
 }
 
 /*
- * obj_drain -- pmemobj version of pmem_drain w/o replication
+ * obj_persist_nonpmem -- pmemobj version of pmem_persist w/o replication
  */
-static void
-obj_drain(void *ctx)
+static int
+obj_persist_nonpmem(const void *ctx, const void *addr, size_t len)
 {
-	PMEMobjpool *pop = (PMEMobjpool *)ctx;
-	pop->drain_local();
+	return pmem_msync(addr, len);
+}
+
+/*
+ * obj_flush_nonpmem -- pmemobj version of pmem_flush w/o replication
+ */
+static int
+obj_flush_nonpmem(const void *ctx, const void *addr, size_t len)
+{
+	return pmem_msync(addr, len);
+}
+
+/*
+ * obj_drain_nonpmem -- pmemobj version of pmem_drain w/o replication
+ */
+static int
+obj_drain_nonpmem(const void *ctx)
+{
+	return 0;
 }
 
 /*
@@ -120,25 +138,24 @@ FUNC_MOCK_RUN_DEFAULT
 	Pop = (PMEMobjpool *)addr;
 	Pop->addr = Pop;
 	Pop->size = size;
-	Pop->is_pmem = is_pmem;
 	Pop->rdonly = 0;
 	Pop->uuid_lo = 0x12345678;
 
-	if (Pop->is_pmem) {
-		Pop->persist_local = pmem_persist;
-		Pop->flush_local = pmem_flush;
-		Pop->drain_local = pmem_drain;
+	Pop->set = MALLOC(sizeof(struct pool_set));
+
+	if (is_pmem) {
+		Pop->set->p_ops.ops.persist = obj_persist_pmem;
+		Pop->set->p_ops.ops.flush = obj_flush_pmem;
+		Pop->set->p_ops.ops.drain = obj_drain_pmem;
 	} else {
-		Pop->persist_local = (persist_local_fn)pmem_msync;
-		Pop->flush_local = (persist_local_fn)pmem_msync;
-		Pop->drain_local = pmem_drain_nop;
+		Pop->set->p_ops.ops.persist = obj_persist_nonpmem;
+		Pop->set->p_ops.ops.flush = obj_flush_nonpmem;
+		Pop->set->p_ops.ops.drain = obj_drain_nonpmem;
 	}
 
-	Pop->p_ops.persist = obj_persist;
-	Pop->p_ops.flush = obj_flush;
-	Pop->p_ops.drain = obj_drain;
-	Pop->p_ops.base = Pop;
-	struct pmem_ops *p_ops = &Pop->p_ops;
+	Pop->set->p_ops.base = Pop;
+
+	struct pool_set *set = Pop->set;
 
 	Pop->heap_offset = HEAP_OFFSET;
 	Pop->heap_size = Pop->size - Pop->heap_offset;
@@ -172,21 +189,21 @@ FUNC_MOCK_RUN_DEFAULT
 			linear_alloc(&heap_offset, sizeof(*Item)));
 	Item->oid.pool_uuid_lo = Pop->uuid_lo;
 	Item->oid.off = linear_alloc(&heap_offset, sizeof(struct oob_item));
-	pmemops_persist(p_ops, Item, sizeof(*Item));
+	pmemops_persist(set, Item, sizeof(*Item));
 
 	if (*Heap_offset == 0) {
 		*Heap_offset = heap_offset;
-		pmemops_persist(p_ops, Heap_offset, sizeof(*Heap_offset));
+		pmemops_persist(set, Heap_offset, sizeof(*Heap_offset));
 	}
 
-	pmemops_persist(p_ops, Pop, HEAP_OFFSET);
+	pmemops_persist(set, Pop, HEAP_OFFSET);
 
 	Pop->run_id += 2;
-	pmemops_persist(p_ops, &Pop->run_id, sizeof(Pop->run_id));
+	pmemops_persist(set, &Pop->run_id, sizeof(Pop->run_id));
 
-	Pop->redo = redo_log_config_new(Pop->addr, p_ops, redo_log_check_offset,
+	Pop->redo = redo_log_config_new(Pop->addr, set, redo_log_check_offset,
 			Pop, REDO_NUM_ENTRIES);
-	pmemops_persist(p_ops, &Pop->redo, sizeof(Pop->redo));
+	pmemops_persist(set, &Pop->redo, sizeof(Pop->redo));
 
 	return Pop;
 }
@@ -199,6 +216,7 @@ FUNC_MOCK_END
  */
 FUNC_MOCK(pmemobj_close, void, PMEMobjpool *pop)
 	FUNC_MOCK_RUN_DEFAULT {
+		FREE(pop->set);
 		UT_ASSERTeq(pmem_unmap(Pop, Pop->size), 0);
 		Pop = NULL;
 	}
@@ -240,7 +258,7 @@ FUNC_MOCK(pmemobj_alloc, int, PMEMobjpool *pop, PMEMoid *oidp,
 		pmalloc(NULL, &oid.off, size);
 		if (oidp) {
 			*oidp = oid;
-			pmemops_persist(&Pop->p_ops, oidp, sizeof(*oidp));
+			pmemops_persist(Pop->set, oidp, sizeof(*oidp));
 		}
 		return 0;
 	}

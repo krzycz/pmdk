@@ -193,7 +193,7 @@ item_constructor(void *ctx, void *ptr, size_t usable_size, void *arg)
 	int id = *(int *)arg;
 	struct item *item = (struct item *)ptr;
 	item->id = id;
-	pmemops_persist(&pop->p_ops, &item->id, sizeof(item->id));
+	pmemops_persist(pop->set, &item->id, sizeof(item->id));
 	UT_OUT("constructor(id = %d)", id);
 
 	return 0;

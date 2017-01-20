@@ -47,14 +47,15 @@ struct mock_pop {
 	void *heap;
 };
 
-static void
-obj_heap_persist(void *ctx, const void *ptr, size_t sz)
+static int
+obj_heap_persist(const void *ctx, const void *ptr, size_t sz)
 {
 	UT_ASSERTeq(pmem_msync(ptr, sz), 0);
+	return 0;
 }
 
 static void *
-obj_heap_memset_persist(void *ctx, void *ptr, int c, size_t sz)
+obj_heap_memset_persist(const void *ctx, void *ptr, int c, size_t sz)
 {
 	memset(ptr, c, sz);
 	UT_ASSERTeq(pmem_msync(ptr, sz), 0);
@@ -71,19 +72,20 @@ test_heap()
 	pop->size = MOCK_POOL_SIZE;
 	pop->heap_size = MOCK_POOL_SIZE - sizeof(PMEMobjpool);
 	pop->heap_offset = (uint64_t)((uint64_t)&mpop->heap - (uint64_t)mpop);
-	pop->p_ops.persist = obj_heap_persist;
-	pop->p_ops.memset_persist = obj_heap_memset_persist;
-	pop->p_ops.base = pop;
-	pop->p_ops.pool_size = pop->size;
+
+	pop->set = MALLOC(sizeof(struct pool_set));
+	pop->set->p_ops.ops.persist = obj_heap_persist;
+	pop->set->p_ops.ops.memset_persist = obj_heap_memset_persist;
+	pop->set->p_ops.base = pop;
+	pop->set->p_ops.pool_size = pop->size;
 
 	void *heap_start = (char *)pop + pop->heap_offset;
 	uint64_t heap_size = pop->heap_size;
 	struct palloc_heap *heap = &pop->heap;
-	struct pmem_ops *p_ops = &pop->p_ops;
 
 	UT_ASSERT(heap_check(heap_start, heap_size) != 0);
-	UT_ASSERT(heap_init(heap_start, heap_size, p_ops) == 0);
-	UT_ASSERT(heap_boot(heap, heap_start, heap_size, pop, p_ops) == 0);
+	UT_ASSERT(heap_init(heap_start, heap_size, pop->set) == 0);
+	UT_ASSERT(heap_boot(heap, heap_start, heap_size, pop, pop->set) == 0);
 	UT_ASSERT(heap_buckets_init(heap) == 0);
 	UT_ASSERT(pop->heap.rt != NULL);
 
@@ -125,6 +127,7 @@ test_heap()
 	heap_cleanup(heap);
 	UT_ASSERT(heap->rt == NULL);
 
+	FREE(pop->set);
 	MUNMAP_ANON_ALIGNED(mpop, MOCK_POOL_SIZE);
 }
 
