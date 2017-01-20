@@ -96,7 +96,6 @@ endif
 ifeq ($(LIBPMEMOBJ), internal-debug)
 OBJS += $(TOP)/src/debug/libpmemobj/bucket.o\
 	$(TOP)/src/debug/libpmemobj/ctree.o\
-	$(TOP)/src/debug/libpmemobj/cuckoo.o\
 	$(TOP)/src/debug/libpmemobj/heap.o\
 	$(TOP)/src/debug/libpmemobj/lane.o\
 	$(TOP)/src/debug/libpmemobj/libpmemobj.o\
@@ -120,7 +119,6 @@ endif
 ifeq ($(LIBPMEMOBJ), internal-nondebug)
 OBJS += $(TOP)/src/nondebug/libpmemobj/bucket.o\
 	$(TOP)/src/nondebug/libpmemobj/ctree.o\
-	$(TOP)/src/nondebug/libpmemobj/cuckoo.o\
 	$(TOP)/src/nondebug/libpmemobj/heap.o\
 	$(TOP)/src/nondebug/libpmemobj/lane.o\
 	$(TOP)/src/nondebug/libpmemobj/libpmemobj.o\

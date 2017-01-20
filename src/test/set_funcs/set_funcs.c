@@ -245,8 +245,9 @@ test_obj(const char *path)
 {
 	memset(cnt, 0, sizeof(cnt));
 
-	PMEMobjpool *pop =
-			pmemobj_create(path, NULL, PMEMOBJ_MIN_POOL, 0600);
+	PMEMobjpool *pop;
+	pop = pmemobj_create(path, NULL, PMEMOBJ_MIN_POOL, 0600);
+	UT_ASSERTne(pop, NULL);
 
 	PMEMoid oid;
 
@@ -287,9 +288,9 @@ test_blk(const char *path)
 	memset(cnt, 0, sizeof(cnt));
 
 	PMEMblkpool *blk = pmemblk_create(path, 512, PMEMBLK_MIN_POOL, 0600);
+	UT_ASSERTne(blk, NULL);
 
 	pmemblk_close(blk);
-
 
 	UT_OUT("blk_mallocs: %d", cnt[BLK].mallocs);
 	UT_OUT("blk_frees: %d", cnt[BLK].frees);
@@ -317,9 +318,9 @@ test_log(const char *path)
 	memset(cnt, 0, sizeof(cnt));
 
 	PMEMlogpool *log = pmemlog_create(path, PMEMLOG_MIN_POOL, 0600);
+	UT_ASSERTne(log, NULL);
 
 	pmemlog_close(log);
-
 
 	UT_OUT("log_mallocs: %d", cnt[LOG].mallocs);
 	UT_OUT("log_frees: %d", cnt[LOG].frees);
@@ -352,7 +353,9 @@ test_vmem(const char *dir)
 
 	for (int i = 0; i < VMEM_POOLS; i++) {
 		v[i] = vmem_create(dir, VMEM_MIN_POOL);
+		UT_ASSERTne(v[i], NULL);
 		ptr[i] = vmem_malloc(v[i], 64);
+		UT_ASSERTne(ptr[i], NULL);
 		vmem_free(v[i], ptr[i]);
 	}
 

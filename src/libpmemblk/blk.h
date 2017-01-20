@@ -60,6 +60,7 @@ struct pmemblk {
 	int is_zeroed;
 
 	/* some run-time state, allocated out of memory pool... */
+	/* XXX: addr, size are redundant */
 	void *addr;			/* mapped region */
 	size_t size;			/* size of mapped region */
 	int rdonly;			/* true if pool is opened read-only */

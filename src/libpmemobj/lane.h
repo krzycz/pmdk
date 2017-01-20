@@ -115,7 +115,8 @@ struct lane_info {
 	uint64_t pop_uuid_lo;
 	uint64_t lane_idx;
 	unsigned long nest_count;
-	struct lane_info *prev, *next;
+	struct lane_info *prev;
+	struct lane_info *next;
 };
 
 extern struct section_operations *Section_ops[MAX_LANE_SECTION];

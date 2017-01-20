@@ -57,6 +57,7 @@ SOURCE =\
 	$(COMMON)/uuid.c\
 	$(COMMON)/uuid_linux.c\
 	$(COMMON)/util_linux.c\
+	$(COMMON)/cuckoo.c\
 	libpmempool.c\
 	check.c\
 	check_backup.c\

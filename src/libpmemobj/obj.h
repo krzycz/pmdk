@@ -124,6 +124,7 @@ struct pmemobjpool {
 	uint64_t run_id;
 
 	/* some run-time state, allocated out of memory pool... */
+	/* XXX: addr, size are redundant */
 	void *addr;		/* mapped region */
 	size_t size;		/* size of mapped region */
 	int rdonly;		/* true if pool is opened read-only */
@@ -132,7 +133,6 @@ struct pmemobjpool {
 	uint64_t uuid_lo;
 
 	struct pool_set *set;		/* pool set info */
-
 	struct redo_ctx *redo;		/* XXX */
 
 	PMEMmutex rootlock;	/* root object lock */
@@ -141,7 +141,7 @@ struct pmemobjpool {
 
 	/* padding to align size of this structure to page boundary */
 	/* sizeof(unused2) == 8192 - offsetof(struct pmemobjpool, unused2) */
-	char unused2[1590];
+	char unused2[1590 + 256];
 };
 
 extern struct pool_hdr_template Obj_ht;

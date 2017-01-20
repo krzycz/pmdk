@@ -375,6 +375,7 @@ main(int argc, char *argv[])
 
 	/* first pool open */
 	mock_open_pool(&Mock_pop);
+	Mock_pop.set = MALLOC(sizeof(struct pool_set));
 	Mock_pop.set->p_ops.ops.persist = (persist_fn)obj_sync_persist;
 	Mock_pop.set->p_ops.base = &Mock_pop;
 	Test_obj = (struct mock_obj *)MALLOC(sizeof(struct mock_obj));
@@ -412,6 +413,7 @@ main(int argc, char *argv[])
 		cleanup(test_type);
 	}
 
+	FREE(Mock_pop.set);
 	FREE(check_threads);
 	FREE(write_threads);
 	FREE(Test_obj);

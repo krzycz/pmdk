@@ -61,6 +61,7 @@ struct pmemlog {
 	uint64_t write_offset;	/* current write point for the log */
 
 	/* some run-time state, allocated out of memory pool... */
+	/* XXX: addr, size are redundant */
 	void *addr;			/* mapped region */
 	size_t size;			/* size of mapped region */
 	int rdonly;			/* true if pool is opened read-only */

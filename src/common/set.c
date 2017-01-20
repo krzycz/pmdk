@@ -66,6 +66,8 @@
 #include "valgrind_internal.h"
 #include "sys_util.h"
 
+#include "cuckoo.h"
+
 #define LIBRARY_REMOTE "librpmem.so.1"
 #define SIZE_AUTODETECT_STR "AUTO"
 
@@ -85,51 +87,6 @@ int (*Rpmem_remove)(const char *target, const char *pool_set_name, int flags);
 static int Remote_replication_available;
 static pthread_mutex_t Remote_lock;
 static int Remote_usage_counter;
-
-
-struct rep_pmem_ops Pmem_ops = {
-	(persist_local_fn)pmem_persist, /* XXX - void */
-	(flush_local_fn)pmem_flush,
-	(drain_local_fn)pmem_drain,
-	pmem_memcpy_persist,
-	pmem_memset_persist
-};
-
-struct rep_pmem_ops Nonpmem_ops = {
-	set_persist_nonpmem,
-	set_flush_nonpmem,
-	set_drain_nonpmem,
-	set_memcpy_persist_nonpmem,
-	set_memset_persist_nonpmem
-};
-
-struct rep_pmem_ops Remote_ops = {
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-};
-
-struct set_pmem_ops Rep_ops = {
-	(persist_fn)set_persist,
-	(flush_fn)set_flush,
-	(drain_fn)set_drain,
-	(memcpy_fn)set_memcpy_persist,
-	(memset_fn)set_memset_persist,
-	(memcpy_fn)set_memcpy_nodrain,
-	(memset_fn)set_memset_nodrain,
-};
-
-struct set_pmem_ops Norep_ops = {
-	(persist_fn)set_persist_norep,
-	(flush_fn)set_flush_norep,
-	(drain_fn)set_drain_norep,
-	(memcpy_fn)set_memcpy_persist_norep,
-	(memset_fn)set_memset_persist_norep,
-	(memcpy_fn)set_memcpy_nodrain_norep,
-	(memset_fn)set_memset_nodrain_norep,
-};
 
 
 /*
@@ -185,6 +142,14 @@ set_remote_read(void *ctx, uintptr_t base, void *dest, void *addr,
 	return 0;
 }
 
+struct rep_pmem_ops Remote_ops = {
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
+
 /*
  * XXX - Consider removing obj_norep_*() wrappers to call *_local()
  * functions directly.  Alternatively, always use obj_rep_*(), even
@@ -192,11 +157,11 @@ set_remote_read(void *ctx, uintptr_t base, void *dest, void *addr,
  */
 
 /* NON-PMEM */
-
+#if 0
 /*
  * set_memcpy_nodrain_nonpmem -- (internal) memcpy followed by an msync
  */
-void *
+static void *
 set_memcpy_nodrain_nonpmem(void *dest, const void *src, size_t len)
 {
 	LOG(15, "dest %p src %p len %zu", dest, src, len);
@@ -209,7 +174,7 @@ set_memcpy_nodrain_nonpmem(void *dest, const void *src, size_t len)
 /*
  * set_memset_nodrain_nonpmem -- (internal) memset followed by an msync
  */
-void *
+static void *
 set_memset_nodrain_nonpmem(void *dest, int c, size_t len)
 {
 	LOG(15, "dest %p c 0x%02x len %zu", dest, c, len);
@@ -218,11 +183,12 @@ set_memset_nodrain_nonpmem(void *dest, int c, size_t len)
 	//pmem_msync(dest, len);
 	return dest;
 }
+#endif
 
 /*
  * set_memcpy_persist_nonpmem -- (internal) memcpy followed by an msync
  */
-void *
+static void *
 set_memcpy_persist_nonpmem(void *dest, const void *src, size_t len)
 {
 	LOG(15, "dest %p src %p len %zu", dest, src, len);
@@ -235,7 +201,7 @@ set_memcpy_persist_nonpmem(void *dest, const void *src, size_t len)
 /*
  * set_memset_persist_nonpmem -- (internal) memset followed by an msync
  */
-void *
+static void *
 set_memset_persist_nonpmem(void *dest, int c, size_t len)
 {
 	LOG(15, "dest %p c 0x%02x len %zu", dest, c, len);
@@ -248,7 +214,7 @@ set_memset_persist_nonpmem(void *dest, int c, size_t len)
 /*
  * set_persist_nonpmem -- (internal) empty function for drain on non-pmem memory
  */
-int
+static int
 set_persist_nonpmem(const void *addr, size_t len)
 {
 	LOG(15, "addr %p len %zu", addr, len);
@@ -259,7 +225,7 @@ set_persist_nonpmem(const void *addr, size_t len)
 /*
  * set_flush_nonpmem -- (internal) flush on non-pmem memory
  */
-int
+static int
 set_flush_nonpmem(const void *addr, size_t len)
 {
 	LOG(15, "addr %p len %zu", addr, len);
@@ -270,15 +236,72 @@ set_flush_nonpmem(const void *addr, size_t len)
 /*
  * set_drain_nonpmem -- (internal) empty function for drain on non-pmem memory
  */
-int
+static int
 set_drain_nonpmem(void)
 {
 	/* do nothing */
 	return 0;
 }
 
+
+struct rep_pmem_ops Nonpmem_ops = {
+	set_persist_nonpmem,
+	set_flush_nonpmem,
+	set_drain_nonpmem,
+	set_memcpy_persist_nonpmem,
+	set_memset_persist_nonpmem
+};
+
+
 /* PMEM */
 
+/* no need to have wrappers for memcpy/memset */
+
+/*
+ * set_persist_pmem -- (internal) empty function for drain on non-pmem memory
+ */
+static int
+set_persist_pmem(const void *addr, size_t len)
+{
+	LOG(15, "addr %p len %zu", addr, len);
+	pmem_persist(addr, len);
+	return 0;
+}
+
+/*
+ * set_flush_pmem -- (internal) flush on non-pmem memory
+ */
+static int
+set_flush_pmem(const void *addr, size_t len)
+{
+	LOG(15, "addr %p len %zu", addr, len);
+	pmem_flush(addr, len);
+	return 0;
+}
+
+/*
+ * set_drain_pmem -- (internal) empty function for drain on non-pmem memory
+ */
+static int
+set_drain_pmem(void)
+{
+	pmem_drain();
+	return 0;
+}
+
+
+struct rep_pmem_ops Pmem_ops = {
+	set_persist_pmem,
+	set_flush_pmem,
+	set_drain_pmem,
+	pmem_memcpy_persist,
+	pmem_memset_persist
+};
+
+
+/* set wrappers */
+
+/* NOREP */
 /*
  * set_memcpy_nodrain_norep -- (internal) memset w/o replication
  */
@@ -369,6 +392,7 @@ set_drain_norep(struct pool_set *set)
 	return rep->p_ops.drain();
 }
 
+/* REP */
 
 /*
  * set_memcpy_persist -- memcpy with replication
@@ -412,6 +436,228 @@ exit:
 	return ret;
 }
 
+
+
+struct set_pmem_ops Rep_ops = {
+	(persist_fn)set_persist,
+	(flush_fn)set_flush,
+	(drain_fn)set_drain,
+	(memcpy_fn)set_memcpy_persist,
+	(memset_fn)set_memset_persist,
+	(memcpy_fn)set_memcpy_nodrain,
+	(memset_fn)set_memset_nodrain,
+};
+
+struct set_pmem_ops Norep_ops = {
+	(persist_fn)set_persist_norep,
+	(flush_fn)set_flush_norep,
+	(drain_fn)set_drain_norep,
+	(memcpy_fn)set_memcpy_persist_norep,
+	(memset_fn)set_memset_persist_norep,
+	(memcpy_fn)set_memcpy_nodrain_norep,
+	(memset_fn)set_memset_nodrain_norep,
+};
+
+
+
+
+/*
+ * Distance between lanes used by threads required to prevent threads from
+ * false sharing part of lanes array. Used if properly spread lanes are
+ * available. Otherwise less spread out lanes would be used.
+ */
+#define LANE_JMP (64 / sizeof(uint64_t))
+
+static pthread_key_t Lane_info_key;
+
+/*
+ * lane info cache is per-thread - so it must hold lane info for multiple pools
+ * but if there is only one index which is reused in all the pmem sets
+ * and we calculate idx % set->nlanes? this should work fine, but we need to
+ * manage nesting count and it also must be per-thread and per-pool set.
+ */
+
+static __thread struct cuckoo *Lane_info_ht;
+static __thread struct set_lane_info *Lane_info_records;
+static __thread struct set_lane_info *Lane_info_cache;
+
+
+/*
+ * lane_info_destroy -- destroy lane info hash table
+ */
+static inline void
+lane_info_destroy()
+{
+	if (unlikely(Lane_info_ht == NULL))
+		return;
+
+	cuckoo_delete(Lane_info_ht);
+	struct set_lane_info *record;
+	struct set_lane_info *head = Lane_info_records;
+	while (head != NULL) {
+		record = head;
+		head = head->next;
+		Free(record);
+	}
+
+	Lane_info_ht = NULL;
+	Lane_info_records = NULL;
+	Lane_info_cache = NULL;
+}
+
+/*
+ * lane_info_ht_destroy -- (internal) destructor for thread shared data
+ */
+static inline void
+lane_info_ht_destroy(void *ht)
+{
+	lane_info_destroy();
+}
+
+/*
+ * lane_info_create -- (internal) constructor for thread shared data
+ */
+static inline void
+lane_info_create()
+{
+	Lane_info_ht = cuckoo_new();
+	if (Lane_info_ht == NULL)
+		FATAL("cuckoo_new");
+}
+
+/*
+ * lane_info_ht_boot -- (internal) boot lane info and add it to thread shared
+ *	data
+ */
+static inline void
+set_lane_info_ht_boot()
+{
+	lane_info_create();
+	int result = pthread_setspecific(Lane_info_key, Lane_info_ht);
+	if (result != 0) {
+		errno = result;
+		FATAL("!pthread_setspecific");
+	}
+}
+
+/*
+ * set_get_lane_info_record -- (internal) get lane record attached to memory
+ * pool or first free
+ */
+static inline struct set_lane_info *
+set_get_lane_info_record(struct pool_set *set)
+{
+	if (likely(Lane_info_cache != NULL && Lane_info_cache->set == set)) {
+		return Lane_info_cache;
+	}
+
+	if (unlikely(Lane_info_ht == NULL)) {
+		set_lane_info_ht_boot();
+	}
+
+	struct set_lane_info *info = cuckoo_get(Lane_info_ht, (uint64_t)set);
+
+	if (unlikely(info == NULL)) {
+		info = Malloc(sizeof(struct set_lane_info));
+		if (unlikely(info == NULL)) {
+			FATAL("Malloc");
+		}
+		info->set = set;
+		info->lane_idx = UINT64_MAX;
+		info->nest_count = 0;
+		info->next = Lane_info_records;
+		info->prev = NULL;
+		if (Lane_info_records) {
+			Lane_info_records->prev = info;
+		}
+		Lane_info_records = info;
+
+		if (unlikely(cuckoo_insert(Lane_info_ht, (uint64_t)set,
+				info) != 0)) {
+			FATAL("cuckoo_insert");
+		}
+	}
+
+	Lane_info_cache = info;
+	return info;
+}
+
+
+/*
+ * get_lane -- (internal) get free lane index
+ */
+static inline void
+get_lane(uint64_t *locks, uint64_t *index, uint64_t nlocks)
+{
+	while (1) {
+		do {
+			*index %= nlocks;
+			if (likely(util_bool_compare_and_swap64(
+					&locks[*index], 0, 1)))
+				return;
+
+			++(*index);
+		} while (*index < nlocks);
+
+		sched_yield();
+	}
+}
+
+#define RLANE_DEFAULT 0
+
+unsigned
+set_lane_hold(struct pool_set *set)
+{
+	/*
+	 * Before runtime lane initialization all remote operations are
+	 * executed using RLANE_DEFAULT.
+	 */
+	if (unlikely(!set->lanes_desc.runtime_nlanes)) {
+		ASSERT(set->remote);
+		return RLANE_DEFAULT;
+	}
+
+	struct set_lane_info *lane = set_get_lane_info_record(set);
+	while (unlikely(lane->lane_idx == UINT64_MAX)) {
+		/* initial wrap to next CL */
+		lane->lane_idx = __sync_fetch_and_add(
+			&set->lanes_desc.next_lane_idx, LANE_JMP);
+	} /* handles wraparound */
+
+	uint64_t *llocks = set->lanes_desc.lane_locks;
+	/* grab next free lane from lanes available at runtime */
+	if (!lane->nest_count++)
+		get_lane(llocks, &lane->lane_idx,
+			set->lanes_desc.runtime_nlanes);
+
+	return (unsigned)lane->lane_idx;
+}
+
+void
+set_lane_release(struct pool_set *set)
+{
+	if (unlikely(!set->lanes_desc.runtime_nlanes)) {
+		ASSERT(set->remote);
+		return;
+	}
+
+	struct set_lane_info *lane = set_get_lane_info_record(set);
+
+	ASSERTne(lane, NULL);
+	ASSERTne(lane->lane_idx, UINT64_MAX);
+
+	if (unlikely(lane->nest_count == 0)) {
+		FATAL("set_lane_release");
+	} else if (--(lane->nest_count) == 0) {
+		if (unlikely(!util_bool_compare_and_swap64(
+				&set->lanes_desc.lane_locks[lane->lane_idx],
+				1, 0))) {
+			FATAL("util_bool_compare_and_swap64");
+		}
+	}
+}
+
+
 /*
  * set_memset_persist -- memset with replication
  */
@@ -422,8 +668,8 @@ set_memset_persist(struct pool_set *set, void *dest, int c, size_t len)
 
 	unsigned lane = UINT_MAX;
 
-	//if (set->remote)
-	//	lane = lane_hold(pop, NULL, LANE_ID);
+	if (set->remote)
+		lane = set_lane_hold(set);
 
 	struct pool_replica *rep = set->replica[0];
 	void *ret = rep->p_ops.memset(dest, c, len);
@@ -447,8 +693,8 @@ set_memset_persist(struct pool_set *set, void *dest, int c, size_t len)
 	}
 
 exit:
-	//if (set->remote)
-	//	lane_release(set);
+	if (set->remote)
+		set_lane_release(set);
 
 	return ret;
 }
@@ -477,8 +723,8 @@ set_persist(struct pool_set *set, const void *addr, size_t len)
 
 	unsigned lane = UINT_MAX;
 
-	//if (set->remote)
-	//	lane = lane_hold(rep, NULL, LANE_ID); /* XXX */
+	if (set->remote)
+		lane = set_lane_hold(set);
 
 	struct pool_replica *rep = set->replica[0];
 	int ret = rep->p_ops.persist(addr, len);
@@ -491,7 +737,10 @@ set_persist(struct pool_set *set, const void *addr, size_t len)
 		rep = set->replica[r];
 		void *raddr = (char *)rep->base + off;
 		if (rep->rpp == NULL) {
-			ret = rep->p_ops.persist(raddr, len);
+			/* XXX */
+			if (rep->p_ops.memcpy(raddr, addr, len) == NULL) {
+				ret = -1;
+			}
 		} else {
 			if (rep->r_ops.persist(rep, raddr, len, lane) == NULL) {
 				//obj_handle_remote_persist_error(pop);
@@ -503,8 +752,8 @@ set_persist(struct pool_set *set, const void *addr, size_t len)
 	}
 
 exit:
-	//if (pop->remote)
-	//	lane_release(set);
+	if (set->remote)
+		set_lane_release(set);
 
 	return ret;
 }
@@ -519,8 +768,8 @@ set_flush(struct pool_set *set, const void *addr, size_t len)
 
 	unsigned lane = UINT_MAX;
 
-	//if (set->remote)
-	//	lane = lane_hold(rep, NULL, LANE_ID); /* XXX */
+	if (set->remote)
+		lane = set_lane_hold(set);
 
 	struct pool_replica *rep = set->replica[0];
 	int ret = rep->p_ops.flush(addr, len);
@@ -533,7 +782,7 @@ set_flush(struct pool_set *set, const void *addr, size_t len)
 		rep = set->replica[r];
 		void *raddr = (char *)rep->base + off;
 		if (rep->rpp == NULL) {
-			memcpy(raddr, addr, len);
+			memcpy(raddr, addr, len); /* XXX */
 			ret = rep->p_ops.flush(raddr, len);
 		} else {
 			if (rep->r_ops.persist(rep, raddr, len, lane) == NULL) {
@@ -546,8 +795,8 @@ set_flush(struct pool_set *set, const void *addr, size_t len)
 	}
 
 exit:
-	//if (set->remote)
-	//	lane_release(set);
+	if (set->remote)
+		set_lane_release(set);
 
 	return ret;
 }
@@ -575,6 +824,8 @@ set_drain(struct pool_set *set)
 exit:
 	return ret;
 }
+
+
 
 
 int
@@ -615,7 +866,6 @@ set_replicas_init(struct pool_set *set)
 
 		/* initialize replica runtime - is_pmem, funcs, ... */
 		if (rep->rpp) {
-			ASSERTne(rep->rpp, NULL);
 			ASSERTne(rep->node_addr, NULL);
 			ASSERTne(rep->pool_desc, NULL);
 
@@ -644,6 +894,7 @@ set_replicas_init(struct pool_set *set)
 	set->p_ops.base = set->replica[0]->base; /* XXX - base addr of master rep */
 	set->p_ops.pool_size = set->replica[0]->repsize; //rep->size; XXX
 
+	/* XXX moved to pmemobj_create/pmemobj_open_common */
 	//rep->redo = redo_log_config_new(rep->addr, &rep->p_ops,
 	//		redo_log_check_offset, rep, REDO_NUM_ENTRIES);
 	//if (!rep->redo)
@@ -652,6 +903,22 @@ set_replicas_init(struct pool_set *set)
 
 	return 0;
 }
+
+int
+set_for_each_replica(struct pool_set *set,
+		int (*func_cb)(struct pool_replica *rep, void *args), void *args)
+{
+	for (unsigned r = 0; r < set->nreplicas; r++) {
+		struct pool_replica *rep = set->replica[r];
+		rep->base = rep->part[0].addr;
+		int ret = func_cb(rep, args);
+		if (ret != 0)
+			return ret;
+	}
+	return 0;
+}
+
+
 
 /*
  * util_remote_init -- initialize remote replication
@@ -1088,43 +1355,19 @@ util_replica_close_remote(struct pool_replica *rep, unsigned r, int del)
 		return;
 
 	LOG(4, "closing remote replica #%u", r);
-	Rpmem_close(rep->rpp);
+	Rpmem_close(rep->rpp); /* XXX: handle error */
 	rep->rpp = NULL;
 
 	if (del) {
 		LOG(4, "removing remote replica #%u", r);
-		int ret = Rpmem_remove(rep->node_addr,
-			rep->pool_desc, 0);
+		int ret = Rpmem_remove(rep->node_addr, rep->pool_desc, 0);
 		if (ret) {
 			LOG(1, "!removing remote replica #%u failed", r);
 		}
 	}
-}
 
-/*
- * set_replicas_cleanup -- (internal) free resources allocated for replicas
- */
-static void
-set_replicas_cleanup(struct pool_set *set)
-{
-	LOG(3, "set %p", set);
-
-	for (unsigned r = 0; r < set->nreplicas; r++) {
-		struct pool_replica *rep = set->replica[r];
-
-		//PMEMobjpool *pop = rep->part[0].addr;
-		//redo_log_config_delete(pop->redo); /* XXX */
-
-		if (rep->rpp != NULL) {
-			/*
-			 * remote replica will be closed in util_poolset_close
-			 */
-			//rep->rpp = NULL;
-
-			Free(rep->node_addr);
-			Free(rep->pool_desc);
-		}
-	}
+	Free(rep->node_addr);
+	Free(rep->pool_desc);
 }
 
 /*
@@ -1136,8 +1379,6 @@ void
 util_poolset_close(struct pool_set *set, int del)
 {
 	LOG(3, "set %p del %d", set, del);
-
-	set_replicas_cleanup(set);
 
 	int oerrno = errno;
 
@@ -1676,16 +1917,12 @@ util_poolset_single(const char *path, size_t filesize, int create)
 
 	rep->nparts = 1;
 
-	/* it does not have a remote replica */
-	rep->rpp = NULL;
-	set->remote = 0;
-
 	/* round down to the nearest mapping alignment boundary */
 	rep->repsize = rep->part[0].filesize & ~(Mmap_align - 1);
 
 	set->poolsize = rep->repsize;
-
 	set->nreplicas = 1;
+	set->remote = 0;	/* it does not have a remote replica */
 
 	return set;
 }
@@ -3290,7 +3527,7 @@ util_poolset_foreach_part(const char *path,
 
 	for (unsigned r = 0; r < set->nreplicas; r++) {
 		struct part_file part;
-		if (set->replica[r]->rpp) {
+		if (set->replica[r]->node_addr) { /* XXX */
 			part.is_remote = 1;
 			part.node_addr = set->replica[r]->node_addr;
 			part.pool_desc = set->replica[r]->pool_desc;

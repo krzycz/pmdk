@@ -1,4 +1,4 @@
-# Copyright 2014-2016, Intel Corporation
+# Copyright 2014-2017, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -48,9 +48,9 @@ SOURCE =\
 	$(COMMON)/uuid.c\
 	$(COMMON)/uuid_linux.c\
 	$(COMMON)/util_linux.c\
+	$(COMMON)/cuckoo.c\
 	bucket.c\
 	ctree.c\
-	cuckoo.c\
 	heap.c\
 	lane.c\
 	libpmemobj.c\

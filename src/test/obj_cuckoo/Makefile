@@ -1,5 +1,5 @@
 #
-# Copyright 2015-2016, Intel Corporation
+# Copyright 2015-2017, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,10 +35,8 @@
 #
 TOP = ../../..
 
-vpath %.c $(TOP)/src/libpmemobj
-
 TARGET = obj_cuckoo
-OBJS = obj_cuckoo.o cuckoo.o
+OBJS = obj_cuckoo.o
 
 LIBPMEMCOMMON=y
 LIBPMEM=y
@@ -47,4 +45,3 @@ include ../Makefile.inc
 
 LDFLAGS += $(call extract_funcs, obj_cuckoo.c)
 
-INCS += -I$(TOP)/src/libpmemobj/

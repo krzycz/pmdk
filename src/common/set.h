@@ -63,6 +63,20 @@ extern "C" {
 #define REPLICAS_DISABLED 0
 #define REPLICAS_ENABLED 1
 
+
+struct set_lane_descriptor {
+	/*
+	 * Number of lanes available at runtime must be <= total number of lanes
+	 * available in the pool. Number of lanes can be limited by shortage of
+	 * other resources e.g. available RNIC's submission queue sizes.
+	 */
+	unsigned runtime_nlanes;
+	unsigned next_lane_idx;
+	uint64_t *lane_locks;
+	//struct lane *lane;
+};
+
+
 struct pool_set_part {
 	/* populated by a pool set file parser */
 	const char *path;
@@ -84,19 +98,19 @@ struct pool_set_part {
 	uuid_t uuid;
 };
 
-struct remote_replica {
-	void *rpp;		/* RPMEMpool opaque handle */
-	char *node_addr;	/* address of a remote node */
-	/* poolset descriptor is a pool set file name on a remote node */
-	char *pool_desc;	/* descriptor of a poolset */
-};
+//struct remote_replica {
+//	void *rpp;		/* RPMEMpool opaque handle */
+//	char *node_addr;	/* address of a remote node */
+//	/* poolset descriptor is a pool set file name on a remote node */
+//	char *pool_desc;	/* descriptor of a poolset */
+//};
 
 struct pool_replica {
 	unsigned nparts;
 	size_t repsize;		/* total size of all the parts (mappings) */
 	int is_pmem;		/* true if all the parts are in PMEM */
 	int is_dax;		/* true if replica is on Device DAX */
-	int is_master_replica;	/* true for replica[0] */
+	//int is_master_replica;	/* true for replica[0] */
 
 	void *base;		/* local: base address == part[0]->addr */
 				/* remote: ... */
@@ -123,6 +137,7 @@ struct pool_set {
 	int remote;		/* true if contains a remote replica */
 
 	struct pmem_ops p_ops;	/* rep or norep variants */
+	struct set_lane_descriptor lanes_desc;
 
 	struct pool_replica *replica[];
 };
@@ -229,6 +244,7 @@ extern struct rep_pmem_ops Remote_ops;
 extern struct set_pmem_ops Rep_ops;
 extern struct set_pmem_ops Norep_ops;
 
+#if 0
 /*
  * non-pmem variants of memory ops - for local replicas, not on PMEM
  */
@@ -240,6 +256,7 @@ int set_persist_nonpmem(const void *addr, size_t len);
 int set_flush_nonpmem(const void *addr, size_t len);
 int set_drain_nonpmem(void);
 
+#endif
 
 void *set_memcpy_nodrain_norep(struct pool_set *set, void *dest, const void *src, size_t len);
 void *set_memset_nodrain_norep(struct pool_set *set, void *dest, int c, size_t len);
@@ -248,6 +265,7 @@ void *set_memset_persist_norep(struct pool_set *set, void *dest, int c, size_t l
 int set_persist_norep(struct pool_set *set, const void *addr, size_t len);
 int set_flush_norep(struct pool_set *set, const void *addr, size_t len);
 int set_drain_norep(struct pool_set *set);
+
 
 
 void *set_memcpy_nodrain(struct pool_set *set, void *dest, const void *src, size_t len);
@@ -336,6 +354,22 @@ pmemops_memset_nodrain(const struct pool_set *set, void *dest, int c,
 {
 	return set->p_ops.ops.memset_nodrain(set, dest, c, len);
 }
+
+struct set_lane_info {
+	struct pool_set *set;
+	uint64_t lane_idx;
+	unsigned long nest_count;
+	struct set_lane_info *prev;
+	struct set_lane_info *next;
+};
+
+
+unsigned set_lane_hold(struct pool_set *set);
+void set_lane_release(struct pool_set *set);
+
+
+int set_for_each_replica(struct pool_set *set,
+		int (*func_cb)(struct pool_replica *rep, void *args), void *args);
 
 #ifdef __cplusplus
 }

@@ -1,4 +1,4 @@
-# Copyright 2014-2016, Intel Corporation
+# Copyright 2014-2017, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -45,7 +45,8 @@ SOURCE =\
 	util.c\
 	uuid.c\
 	uuid_linux.c\
-	util_linux.c
+	util_linux.c\
+	cuckoo.c
 
 include ../Makefile.inc
 

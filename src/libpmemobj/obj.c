@@ -213,8 +213,8 @@ obj_init(void)
 {
 	LOG(3, NULL);
 
-	//COMPILE_ERROR_ON(sizeof(struct pmemobjpool) !=
-	//	POOL_HDR_SIZE + POOL_DESC_SIZE);
+	COMPILE_ERROR_ON(sizeof(struct pmemobjpool) !=
+		POOL_HDR_SIZE + POOL_DESC_SIZE);
 
 #ifdef USE_COW_ENV
 	char *env = getenv("PMEMOBJ_COW");
@@ -440,7 +440,6 @@ obj_descr_create(PMEMobjpool *pop, const char *layout, size_t poolsize)
 	return 0;
 }
 
-#if 0
 /*
  * obj_descr_check -- (internal) validate obj pool descriptor
  */
@@ -454,7 +453,7 @@ obj_descr_check(PMEMobjpool *pop, const char *layout, size_t poolsize)
 #if 0
 	if (pop->set->remote) { /* XXX */
 		/* read remote descriptor */
-		if (obj_read_remote(pop->rpp, pop->set->r_ops.base, dscp,
+		if (obj_read_remote(pop->set->rpp, pop->set->r_ops.base, dscp,
 				dscp, OBJ_DSC_P_SIZE)) {
 			ERR("!obj_read_remote");
 			return -1;
@@ -507,19 +506,49 @@ obj_descr_check(PMEMobjpool *pop, const char *layout, size_t poolsize)
 
 	return 0;
 }
-#endif
 
-#if 0
 /*
- * redo_log_check_offset -- (internal) check if offset is valid
+ * obj_redo_log_check_offset -- (internal) check if offset is valid
  */
 static int
-redo_log_check_offset(void *ctx, uint64_t offset)
+obj_redo_log_check_offset(void *ctx, uint64_t offset)
 {
 	PMEMobjpool *pop = ctx;
 	return OBJ_OFF_IS_VALID(pop, offset);
 }
-#endif
+
+/*
+ * obj_redo_new_cb -- (internal) basic pool consistency check
+ *                              of a local replica
+ */
+static int
+obj_redo_new_cb(struct pool_replica *rep, void *args)
+{
+	PMEMobjpool *pop = (PMEMobjpool *)(rep->base);
+	LOG(3, "pop %p", pop);
+
+	pop->redo = redo_log_config_new(pop->addr, pop->set,
+			obj_redo_log_check_offset, pop, REDO_NUM_ENTRIES);
+	if (!pop->redo)
+		return -1;
+
+	return 0;
+}
+
+/*
+ * obj_redo_delete_cb -- (internal) basic pool consistency check
+ *                              of a local replica
+ */
+static int
+obj_redo_delete_cb(struct pool_replica *rep, void *args)
+{
+	PMEMobjpool *pop = (PMEMobjpool *)(rep->base);
+	LOG(3, "pop %p", pop);
+
+	redo_log_config_delete(pop->redo);
+
+	return 0;
+}
 
 /*
  * obj_runtime_init -- (internal) initialize runtime part of the pool header
@@ -580,7 +609,7 @@ obj_runtime_init(PMEMobjpool *pop, int rdonly, int boot, unsigned nlanes)
 	 * The prototype PMFS doesn't allow this when large pages are in
 	 * use. It is not considered an error if this fails.
 	 */
-	SET_RANGE_NONE(set, pop->addr, sizeof(struct pool_hdr));
+	SET_RANGE_NONE(set, pop, sizeof(struct pool_hdr));
 
 	return 0;
 }
@@ -623,7 +652,13 @@ pmemobj_create(const char *path, const char *layout, size_t poolsize,
 
 	/* pop is master replica from now on */
 	pop = set->p_ops.base;
+	pop->addr = pop;
+	pop->size = set->poolsize;
 	pop->set = set;
+
+	/* XXX */
+	if (set_for_each_replica(set, obj_redo_new_cb, NULL) < 0)
+		goto err;
 
 	/* create pool descriptor */
 	if (obj_descr_create(pop, layout, set->poolsize) != 0) {
@@ -656,6 +691,7 @@ err:
 	return NULL;
 }
 
+#if 0
 /*
  * obj_check_basic_local -- (internal) basic pool consistency check
  *                              of a local replica
@@ -689,7 +725,7 @@ obj_check_basic_local(PMEMobjpool *pop)
 	return consistent;
 }
 
-#if 0
+
 /*
  * obj_check_basic_remote -- (internal) basic pool consistency check
  *                               of a remote replica
@@ -699,7 +735,7 @@ obj_check_basic_remote(PMEMobjpool *pop)
 {
 	LOG(3, "pop %p", pop);
 
-	ASSERTne(pop->set->rmeote, 0);
+	ASSERTne(pop->set->remote, 0);
 
 	int consistent = 1;
 
@@ -746,12 +782,69 @@ obj_check_basic(PMEMobjpool *pop)
 }
 #endif
 
+
+/*
+ * obj_check_cb -- (internal) basic pool consistency check
+ *                              of a local replica
+ */
+static int
+obj_check_cb(struct pool_replica *rep, void *args)
+{
+	PMEMobjpool *pop = (PMEMobjpool *)(rep->base);
+	LOG(3, "pop %p", pop);
+
+	int consistent = 1;
+
+#if 0
+	/* read pop->run_id */
+	if (obj_read_remote(rep->rpp, rep->remote_base, &pop->run_id,
+			&pop->run_id, sizeof(pop->run_id))) {
+		ERR("!obj_read_remote");
+		consistent = 0;
+	}
+#endif
+
+	if (pop->run_id % 2) {
+		ERR("invalid run_id %ju", pop->run_id);
+		consistent = 0;
+	}
+
+#if 0
+	if (rep->rpp == NULL) {
+		if ((errno = lane_check(pop)) != 0) {
+			LOG(2, "!lane_check");
+			consistent = 0;
+		}
+	}
+#endif
+
+	if ((errno = lane_check(pop)) != 0) {
+		LOG(2, "!lane_check");
+		consistent = 0;
+	}
+
+	errno = palloc_heap_check((char *)pop + pop->heap_offset,
+			pop->heap_size);
+	if (errno != 0) {
+		LOG(2, "!heap_check");
+		consistent = 0;
+	}
+
+	return (consistent == 1) ? 0 : -1;
+}
+
+
+
+
 static int
 obj_check_basic(PMEMobjpool *pop)
 {
 	LOG(3, "pop %p", pop);
 
-	return obj_check_basic_local(pop);
+	int ret = set_for_each_replica(pop->set, obj_check_cb, NULL);
+
+	//return obj_check_basic_local(pop);
+	return (ret == 0) ? 1 : 0;
 }
 
 /*
@@ -792,15 +885,27 @@ obj_open_common(const char *path, const char *layout, int cow, int boot)
 
 	/* pop is master replica from now on */
 	pop = set->p_ops.base;
+	pop->addr = pop;
+	pop->size = set->poolsize;
 	pop->set = set;
 
 	set->poolsize = pop->heap_offset + pop->heap_size;
+
+	/* XXX */
+	if (set_for_each_replica(set, obj_redo_new_cb, NULL) < 0)
+		goto err;
 
 	if (boot) {
 		/* check consistency of 'master' replica */
 		if (obj_check_basic(pop) == 0) {
 			goto err;
 		}
+	}
+
+	/* check descriptor */
+	if (obj_descr_check(pop, layout, set->poolsize) != 0) {
+		LOG(2, "descriptor check of replica #%u failed", 0);
+		goto err;
 	}
 
 #if 0
@@ -898,6 +1003,9 @@ obj_pool_cleanup(PMEMobjpool *pop)
 
 	lane_cleanup(pop);
 
+	set_for_each_replica(pop->set, obj_redo_delete_cb, NULL);
+	//redo_log_config_delete(pop->redo);
+
 	/* unmap all the replicas */
 	//obj_replicas_cleanup(pop->set); /* moved to util_poolset_close */
 	util_poolset_close(pop->set, 0);
@@ -961,7 +1069,7 @@ pmemobj_check(const char *path, const char *layout)
 	 * For replicated pools, basic consistency check is performed
 	 * in pmemobj_open_common().
 	 */
-	if (!pop->set->replica)
+	if (pop->set->nreplicas == 1)
 		consistent = obj_check_basic(pop);
 
 	if (consistent && (errno = obj_boot(pop)) != 0) {
@@ -972,6 +1080,8 @@ pmemobj_check(const char *path, const char *layout)
 	if (consistent) {
 		obj_pool_cleanup(pop);
 	} else {
+		set_for_each_replica(pop->set, obj_redo_delete_cb, NULL);
+		//redo_log_config_delete(pop->redo);
 		/* unmap all the replicas */
 		//obj_replicas_cleanup(pop->set);
 		util_poolset_close(pop->set, 0);
@@ -1451,6 +1561,7 @@ pmemobj_alloc_usable_size(PMEMoid oid)
 	return (palloc_usable_size(&pop->heap, oid.off) - OBJ_OOB_SIZE);
 }
 
+#if 0
 /*
  * obj_handle_remote_persist_error -- (internal) handle remote persist
  *                                    fatal error
@@ -1465,6 +1576,7 @@ obj_handle_remote_persist_error(PMEMobjpool *pop)
 
 	FATAL("Fatal error of remote persist. Aborting...");
 }
+#endif
 
 /*
  * pmemobj_memcpy_persist -- pmemobj version of memcpy
@@ -1498,7 +1610,8 @@ pmemobj_persist(PMEMobjpool *pop, const void *addr, size_t len)
 	LOG(15, "pop %p addr %p len %zu", pop, addr, len);
 
 	if (pmemops_persist(pop->set, addr, len) != 0)
-		obj_handle_remote_persist_error(pop);
+		;
+		//obj_handle_remote_persist_error(pop);
 }
 
 /*
@@ -1510,7 +1623,8 @@ pmemobj_flush(PMEMobjpool *pop, const void *addr, size_t len)
 	LOG(15, "pop %p addr %p len %zu", pop, addr, len);
 
 	if (pmemops_flush(pop->set, addr, len) != 0)
-		obj_handle_remote_persist_error(pop);
+		;
+		//obj_handle_remote_persist_error(pop);
 }
 
 /*
