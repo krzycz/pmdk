@@ -36,7 +36,6 @@
 #include <limits.h>
 
 #include "valgrind_internal.h"
-//#include "libpmem.h"
 #include "ctree.h"
 #include "cuckoo.h"
 #include "list.h"
@@ -684,8 +683,6 @@ pmemobj_create(const char *path, const char *layout, size_t poolsize,
 err:
 	LOG(4, "error clean up");
 	int oerrno = errno;
-	//if (set->remote)
-	//	obj_cleanup_remote(pop);
 	util_poolset_close(set, 1);
 	errno = oerrno;
 	return NULL;
@@ -833,17 +830,12 @@ obj_check_cb(struct pool_replica *rep, void *args)
 	return (consistent == 1) ? 0 : -1;
 }
 
-
-
-
 static int
 obj_check_basic(PMEMobjpool *pop)
 {
 	LOG(3, "pop %p", pop);
 
 	int ret = set_for_each_replica(pop->set, obj_check_cb, NULL);
-
-	//return obj_check_basic_local(pop);
 	return (ret == 0) ? 1 : 0;
 }
 
@@ -973,8 +965,6 @@ obj_open_common(const char *path, const char *layout, int cow, int boot)
 err:
 	LOG(4, "error clean up");
 	int oerrno = errno;
-	//if (set->remote)
-	//	obj_cleanup_remote(pop);
 	util_poolset_close(set, 0);
 	errno = oerrno;
 	return NULL;
@@ -1004,10 +994,8 @@ obj_pool_cleanup(PMEMobjpool *pop)
 	lane_cleanup(pop);
 
 	set_for_each_replica(pop->set, obj_redo_delete_cb, NULL);
-	//redo_log_config_delete(pop->redo);
 
 	/* unmap all the replicas */
-	//obj_replicas_cleanup(pop->set); /* moved to util_poolset_close */
 	util_poolset_close(pop->set, 0);
 }
 
@@ -1081,9 +1069,6 @@ pmemobj_check(const char *path, const char *layout)
 		obj_pool_cleanup(pop);
 	} else {
 		set_for_each_replica(pop->set, obj_redo_delete_cb, NULL);
-		//redo_log_config_delete(pop->redo);
-		/* unmap all the replicas */
-		//obj_replicas_cleanup(pop->set);
 		util_poolset_close(pop->set, 0);
 	}
 
@@ -1611,7 +1596,8 @@ pmemobj_persist(PMEMobjpool *pop, const void *addr, size_t len)
 
 	if (pmemops_persist(pop->set, addr, len) != 0)
 		;
-		//obj_handle_remote_persist_error(pop);
+		/* XXX */
+		/* obj_handle_remote_persist_error(pop); */
 }
 
 /*
@@ -1624,7 +1610,8 @@ pmemobj_flush(PMEMobjpool *pop, const void *addr, size_t len)
 
 	if (pmemops_flush(pop->set, addr, len) != 0)
 		;
-		//obj_handle_remote_persist_error(pop);
+	/* XXX */
+	/* obj_handle_remote_persist_error(pop); */
 }
 
 /*

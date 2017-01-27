@@ -98,7 +98,8 @@ static void *
 obj_memcpy(const void *ctx, void *dest, const void *src, size_t len)
 {
 	return memcpy(dest, src, len);
-	//UT_ASSERTeq(pmem_msync(ptr, sz), 0);
+	/* XXX */
+	/* UT_ASSERTeq(pmem_msync(ptr, sz), 0); */
 	return dest;
 }
 

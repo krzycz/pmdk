@@ -50,7 +50,6 @@
 #define PALLOC_DATA_OFF 48
 
 struct palloc_heap {
-	//struct pmem_ops p_ops;
 	struct pool_set *set;
 	struct heap_layout *layout;
 	struct heap_rt *rt;

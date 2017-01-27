@@ -59,7 +59,8 @@ struct rep_pmem_ops {
 typedef int (*persist_fn)(const void *base, const void *dest, size_t);
 typedef int (*flush_fn)(const void *base, const void *, size_t);
 typedef int (*drain_fn)(const void *base);
-typedef void *(*memcpy_fn)(const void *base, void *dest, const void *src, size_t len);
+typedef void *(*memcpy_fn)(const void *base, void *dest, const void *src,
+		size_t len);
 typedef void *(*memset_fn)(const void *base, void *dest, int c, size_t len);
 
 struct set_pmem_ops {
@@ -94,7 +95,5 @@ struct rep_rpmem_ops {
 	void *ctx;
 	uintptr_t base;	/* base address of remote replica */
 };
-
-
 
 #endif

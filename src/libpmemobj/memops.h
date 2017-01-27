@@ -76,7 +76,6 @@ struct operation_context {
 
 	const struct redo_ctx *redo_ctx;
 	struct redo_log *redo;
-	//const struct pmem_ops *p_ops;
 	const struct pool_set *set;
 
 	size_t nentries[MAX_OPERATION_ENTRY_TYPE];

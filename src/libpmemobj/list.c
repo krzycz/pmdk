@@ -301,7 +301,8 @@ list_fill_entry_redo_log(PMEMobjpool *pop,
 		VALGRIND_REMOVE_FROM_TX(
 				&(args->entry_ptr->pe_prev.pool_uuid_lo),
 				sizeof(args->entry_ptr->pe_prev.pool_uuid_lo));
-		pmemops_persist(pop->set, args->entry_ptr, sizeof(*args->entry_ptr));
+		pmemops_persist(pop->set, args->entry_ptr,
+				sizeof(*args->entry_ptr));
 	} else {
 		ASSERTeq(args->entry_ptr->pe_next.pool_uuid_lo, pop->uuid_lo);
 		ASSERTeq(args->entry_ptr->pe_prev.pool_uuid_lo, pop->uuid_lo);
