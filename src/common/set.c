@@ -412,7 +412,7 @@ set_memcpy_persist(struct pool_set *set, void *dest, const void *src,
 	unsigned lane = UINT_MAX;
 
 	if (set->remote)
-		lane = lane_hold(set, NULL, LANE_ID);
+		lane = set_lane_hold(set);
 
 	struct pool_replica *rep = set->replica[0];
 	void *ret = rep->p_ops.memcpy(dest, src, len);
@@ -439,7 +439,7 @@ set_memcpy_persist(struct pool_set *set, void *dest, const void *src,
 
 exit:
 	if (set->remote)
-		lane_release(set);
+		set_lane_release(set);
 
 	return ret;
 }
