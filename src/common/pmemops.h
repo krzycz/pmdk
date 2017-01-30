@@ -92,7 +92,9 @@ struct rep_rpmem_ops {
 	remote_persist_fn persist;
 	remote_read_fn read;
 
-	void *ctx;
+	void *ctx; /* rpp */
+
+	/* beginning of the pool's descriptor */
 	uintptr_t base;	/* base address of remote replica */
 };
 

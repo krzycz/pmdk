@@ -214,11 +214,11 @@ pool_set_map(const char *fname, struct pool_set **poolset, int rdonly)
 	util_get_arch_flags(&ht.arch_flags);
 
 	/*
-	 * Open the poolset, the values passed to util_pool_open are read
+	 * Open the poolset, the values passed to pmemset_open are read
 	 * from the first poolset file, these values are then compared with
 	 * the values from all headers of poolset files.
 	 */
-	if (util_pool_open(poolset, fname, rdonly, &ht, NULL)) {
+	if (pmemset_open(poolset, fname, rdonly, &ht, NULL)) {
 		ERR("opening poolset failed");
 		return -1;
 	}
@@ -402,7 +402,7 @@ out_unmap:
 	if (params->is_poolset) {
 		ASSERTeq(fd, -1);
 		ASSERTne(addr, NULL);
-		util_poolset_close(set, 0);
+		pmemset_close(set, 0);
 	} else if (!is_btt) {
 		ASSERTne(fd, -1);
 		ASSERTne(addr, NULL);
@@ -464,7 +464,7 @@ pool_set_file_open(const char *fname, struct pool_params *params, int rdonly)
 
 err_close_poolset:
 	if (params->type != POOL_TYPE_BTT)
-		util_poolset_close(file->poolset, 0);
+		pmemset_close(file->poolset, 0);
 	else if (file->fd != -1)
 		close(file->fd);
 err_free_fname:
@@ -567,7 +567,7 @@ pool_set_file_close(struct pool_set_file *file)
 	LOG(3, NULL);
 
 	if (file->poolset)
-		util_poolset_close(file->poolset, 0);
+		pmemset_close(file->poolset, 0);
 	else if (file->addr) {
 		munmap(file->addr, file->size);
 		close(file->fd);

@@ -74,7 +74,7 @@ lane_enter(PMEMblkpool *pbp, unsigned *lane)
 {
 	unsigned mylane;
 
-	/* XXX - set_lane_hold */
+	/* XXX - pmemset_lane_hold */
 	mylane = __sync_fetch_and_add(&pbp->next_lane, 1) % pbp->nlane;
 
 	/* lane selected, grab the per-lane lock */
@@ -89,7 +89,7 @@ lane_enter(PMEMblkpool *pbp, unsigned *lane)
 static void
 lane_exit(PMEMblkpool *pbp, unsigned mylane)
 {
-	/* XXX - set_lane_release */
+	/* XXX - pmemset_lane_release */
 	util_mutex_unlock(&pbp->locks[mylane]);
 }
 
@@ -416,7 +416,7 @@ pmemblk_create(const char *path, size_t bsize, size_t poolsize,
 
 	struct pool_set *set;
 
-	if (util_pool_create(&set, path, poolsize, &Blk_ht, NULL,
+	if (pmemset_create(&set, path, poolsize, &Blk_ht, NULL,
 			REPLICAS_DISABLED) != 0) {
 		LOG(2, "cannot create pool or pool set");
 		return NULL;
@@ -457,7 +457,7 @@ pmemblk_create(const char *path, size_t bsize, size_t poolsize,
 err:
 	LOG(4, "error clean up");
 	int oerrno = errno;
-	util_poolset_close(set, 1);
+	pmemset_close(set, 1);
 	errno = oerrno;
 	return NULL;
 }
@@ -478,7 +478,7 @@ pmemblk_open_common(const char *path, size_t bsize, int cow)
 
 	struct pool_set *set;
 
-	if (util_pool_open(&set, path, cow, &Blk_ht, NULL) != 0) {
+	if (pmemset_open(&set, path, cow, &Blk_ht, NULL) != 0) {
 		LOG(2, "cannot open pool or pool set");
 		return NULL;
 	}
@@ -521,7 +521,7 @@ pmemblk_open_common(const char *path, size_t bsize, int cow)
 err:
 	LOG(4, "error clean up");
 	int oerrno = errno;
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 	errno = oerrno;
 	return NULL;
 }
@@ -557,7 +557,7 @@ pmemblk_close(PMEMblkpool *pbp)
 	pthread_mutex_destroy(&pbp->write_lock);
 #endif
 
-	util_poolset_close(pbp->set, 0);
+	pmemset_close(pbp->set, 0);
 }
 
 /*

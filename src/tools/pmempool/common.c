@@ -595,11 +595,11 @@ util_poolset_map(const char *fname, struct pool_set **poolset, int rdonly)
 	unsigned nlanes = 1;
 
 	/*
-	 * Open the poolset, the values passed to util_pool_open are read
+	 * Open the poolset, the values passed to pmemset_open are read
 	 * from the first poolset file, these values are then compared with
 	 * the values from all headers of poolset files.
 	 */
-	if (util_pool_open(poolset, fname, rdonly, &ht, &nlanes)) {
+	if (pmemset_open(poolset, fname, rdonly, &ht, &nlanes)) {
 		outv_err("opening poolset failed\n");
 		return -1;
 	}
@@ -734,7 +734,7 @@ pmem_pool_parse_params(const char *fname, struct pmem_pool_params *paramsp,
 	}
 
 	if (paramsp->is_poolset)
-		util_poolset_close(set, 0);
+		pmemset_close(set, 0);
 
 out_close:
 	if (fd >= 0)
@@ -1340,7 +1340,7 @@ pool_set_file_open(const char *fname,
 	return file;
 
 err_close_poolset:
-	util_poolset_close(file->poolset, 0);
+	pmemset_close(file->poolset, 0);
 err_free_fname:
 	free(file->fname);
 err:
@@ -1356,7 +1356,7 @@ pool_set_file_close(struct pool_set_file *file)
 {
 	if (!file->fileio) {
 		if (file->poolset)
-			util_poolset_close(file->poolset, 0);
+			pmemset_close(file->poolset, 0);
 		else if (file->addr) {
 			munmap(file->addr, file->size);
 			close(file->fd);

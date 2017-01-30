@@ -641,7 +641,7 @@ pmemobj_create(const char *path, const char *layout, size_t poolsize,
 	 */
 	unsigned runtime_nlanes = OBJ_NLANES;
 
-	if (util_pool_create(&set, path, poolsize, &Obj_ht, &runtime_nlanes,
+	if (pmemset_create(&set, path, poolsize, &Obj_ht, &runtime_nlanes,
 			REPLICAS_ENABLED) != 0) {
 		LOG(2, "cannot create pool or pool set");
 		return NULL;
@@ -656,7 +656,7 @@ pmemobj_create(const char *path, const char *layout, size_t poolsize,
 	pop->set = set;
 
 	/* XXX */
-	if (set_for_each_replica(set, obj_redo_new_cb, NULL) < 0)
+	if (pmemset_foreach_replica(set, obj_redo_new_cb, NULL) < 0)
 		goto err;
 
 	/* create pool descriptor */
@@ -683,7 +683,7 @@ pmemobj_create(const char *path, const char *layout, size_t poolsize,
 err:
 	LOG(4, "error clean up");
 	int oerrno = errno;
-	util_poolset_close(set, 1);
+	pmemset_close(set, 1);
 	errno = oerrno;
 	return NULL;
 }
@@ -835,7 +835,7 @@ obj_check_basic(PMEMobjpool *pop)
 {
 	LOG(3, "pop %p", pop);
 
-	int ret = set_for_each_replica(pop->set, obj_check_cb, NULL);
+	int ret = pmemset_foreach_replica(pop->set, obj_check_cb, NULL);
 	return (ret == 0) ? 1 : 0;
 }
 
@@ -861,7 +861,7 @@ obj_open_common(const char *path, const char *layout, int cow, int boot)
 	 */
 	unsigned runtime_nlanes = OBJ_NLANES;
 
-	if (util_pool_open(&set, path, cow, &Obj_ht, &runtime_nlanes) != 0) {
+	if (pmemset_open(&set, path, cow, &Obj_ht, &runtime_nlanes) != 0) {
 		LOG(2, "cannot open pool or pool set");
 		return NULL;
 	}
@@ -884,7 +884,7 @@ obj_open_common(const char *path, const char *layout, int cow, int boot)
 	set->poolsize = pop->heap_offset + pop->heap_size;
 
 	/* XXX */
-	if (set_for_each_replica(set, obj_redo_new_cb, NULL) < 0)
+	if (pmemset_foreach_replica(set, obj_redo_new_cb, NULL) < 0)
 		goto err;
 
 	if (boot) {
@@ -965,7 +965,7 @@ obj_open_common(const char *path, const char *layout, int cow, int boot)
 err:
 	LOG(4, "error clean up");
 	int oerrno = errno;
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 	errno = oerrno;
 	return NULL;
 }
@@ -993,10 +993,10 @@ obj_pool_cleanup(PMEMobjpool *pop)
 
 	lane_cleanup(pop);
 
-	set_for_each_replica(pop->set, obj_redo_delete_cb, NULL);
+	pmemset_foreach_replica(pop->set, obj_redo_delete_cb, NULL);
 
 	/* unmap all the replicas */
-	util_poolset_close(pop->set, 0);
+	pmemset_close(pop->set, 0);
 }
 
 /*
@@ -1068,8 +1068,8 @@ pmemobj_check(const char *path, const char *layout)
 	if (consistent) {
 		obj_pool_cleanup(pop);
 	} else {
-		set_for_each_replica(pop->set, obj_redo_delete_cb, NULL);
-		util_poolset_close(pop->set, 0);
+		pmemset_foreach_replica(pop->set, obj_redo_delete_cb, NULL);
+		pmemset_close(pop->set, 0);
 	}
 
 	if (consistent)

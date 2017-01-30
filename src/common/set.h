@@ -106,16 +106,17 @@ struct pool_replica {
 	int is_dax;		/* true if replica is on Device DAX */
 
 	void *base;		/* local: base address == part[0]->addr */
-				/* remote: ... */
+				/* remote: NULL */
+
+	//off_t offset;		/* offset relative to master base */
+	//			/* local; master->base - rep->base */
+	//			/* remote: master->base - sizeof(pool_hdr) */
 
 	/* local replica ops: pmem or non-pmem */
 	struct rep_pmem_ops p_ops;
 
 	/* remote replica section */
 	void *rpp;	/* RPMEMpool opaque handle if it is a remote replica */
-	/* XXX */
-	/* beginning of the pool's descriptor */
-	/* uintptr_t remote_base; */
 	char *node_addr;	/* address of a remote node */
 	char *pool_desc;	/* descriptor of a poolset */
 	struct rep_rpmem_ops r_ops;
@@ -167,7 +168,7 @@ int util_poolset_read(struct pool_set **setp, const char *path);
 int util_poolset_create_set(struct pool_set **setp, const char *path,
 	size_t poolsize, size_t minsize);
 int util_poolset_open(struct pool_set *set);
-void util_poolset_close(struct pool_set *set, int del);
+
 void util_poolset_free(struct pool_set *set);
 int util_poolset_chmod(struct pool_set *set, mode_t mode);
 void util_poolset_fdclose(struct pool_set *set);
@@ -176,8 +177,6 @@ int util_poolset_foreach_part(const char *path,
 	int (*cb)(struct part_file *pf, void *arg), void *arg);
 size_t util_poolset_size(const char *path);
 
-int util_pool_create(struct pool_set **setp, const char *path, size_t poolsize,
-	const struct pool_hdr_template *ht, unsigned *nlanes, int can_have_rep);
 int util_pool_create_uuids(struct pool_set **setp, const char *path,
 	size_t poolsize, const struct pool_hdr_template *ht, unsigned *nlanes,
 	int can_have_rep, int remote, struct pool_attr *poolattr);
@@ -199,8 +198,7 @@ int util_map_hdr(struct pool_set_part *part, int flags, int rdonly);
 int util_unmap_hdr(struct pool_set_part *part);
 
 int util_pool_open_nocheck(struct pool_set *set, int rdonly);
-int util_pool_open(struct pool_set **setp, const char *path, int rdonly,
-	const struct pool_hdr_template *ht, unsigned *nlanes);
+
 int util_pool_open_remote(struct pool_set **setp, const char *path, int rdonly,
 	struct pool_hdr_template *ht,
 	unsigned char *poolset_uuid, unsigned char *first_part_uuid,
@@ -239,6 +237,10 @@ extern struct rep_pmem_ops Remote_ops;
 extern struct set_pmem_ops Rep_ops;
 extern struct set_pmem_ops Norep_ops;
 
+/* for internal usage only */
+int set_flush_norep(struct pool_set *set, const void *addr, size_t len);
+int set_drain_norep(struct pool_set *set);
+int set_persist_norep(struct pool_set *set, const void *addr, size_t len);
 void *set_memcpy_nodrain_norep(struct pool_set *set, void *dest,
 		const void *src, size_t len);
 void *set_memset_nodrain_norep(struct pool_set *set, void *dest,
@@ -247,19 +249,24 @@ void *set_memcpy_persist_norep(struct pool_set *set, void *dest,
 		const void *src, size_t len);
 void *set_memset_persist_norep(struct pool_set *set, void *dest,
 		int c, size_t len);
-int set_persist_norep(struct pool_set *set, const void *addr, size_t len);
-int set_flush_norep(struct pool_set *set, const void *addr, size_t len);
-int set_drain_norep(struct pool_set *set);
 
+
+/* public API */
+int pmemset_create(struct pool_set **setp, const char *path, size_t poolsize,
+	const struct pool_hdr_template *ht, unsigned *nlanes, int can_have_rep);
+int pmemset_open(struct pool_set **setp, const char *path, int rdonly,
+	const struct pool_hdr_template *ht, unsigned *nlanes);
+void pmemset_close(struct pool_set *set, int del);
+
+int set_flush(struct pool_set *set, const void *addr, size_t len);
+int set_drain(struct pool_set *set);
+int set_persist(struct pool_set *set, const void *addr, size_t len);
 void *set_memcpy_nodrain(struct pool_set *set, void *dest,
 		const void *src, size_t len);
 void *set_memset_nodrain(struct pool_set *set, void *dest, int c, size_t len);
 void *set_memcpy_persist(struct pool_set *set, void *dest,
 		const void *src, size_t len);
 void *set_memset_persist(struct pool_set *set, void *dest, int c, size_t len);
-int set_persist(struct pool_set *set, const void *addr, size_t len);
-int set_flush(struct pool_set *set, const void *addr, size_t len);
-int set_drain(struct pool_set *set);
 
 int set_range_ro(struct pool_set *set, void *addr, size_t len);
 int set_range_rw(struct pool_set *set, void *addr, size_t len);
@@ -346,10 +353,10 @@ struct set_lane_info {
 	struct set_lane_info *next;
 };
 
-unsigned set_lane_hold(struct pool_set *set);
-void set_lane_release(struct pool_set *set);
+unsigned pmemset_lane_hold(struct pool_set *set);
+void pmemset_lane_release(struct pool_set *set);
 
-int set_for_each_replica(struct pool_set *set,
+int pmemset_foreach_replica(struct pool_set *set,
 		int (*func_cb)(struct pool_replica *rep, void *args),
 		void *args);
 

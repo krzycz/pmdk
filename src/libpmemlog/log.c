@@ -182,7 +182,7 @@ pmemlog_create(const char *path, size_t poolsize, mode_t mode)
 
 	struct pool_set *set;
 
-	if (util_pool_create(&set, path, poolsize, &Log_ht, NULL,
+	if (pmemset_create(&set, path, poolsize, &Log_ht, NULL,
 			REPLICAS_DISABLED) != 0) {
 		LOG(2, "cannot create pool or pool set");
 		return NULL;
@@ -223,7 +223,7 @@ pmemlog_create(const char *path, size_t poolsize, mode_t mode)
 err:
 	LOG(4, "error clean up");
 	int oerrno = errno;
-	util_poolset_close(set, 1);
+	pmemset_close(set, 1);
 	errno = oerrno;
 	return NULL;
 }
@@ -241,7 +241,7 @@ pmemlog_open_common(const char *path, int cow)
 
 	struct pool_set *set;
 
-	if (util_pool_open(&set, path, cow, &Log_ht, NULL) != 0) {
+	if (pmemset_open(&set, path, cow, &Log_ht, NULL) != 0) {
 		LOG(2, "cannot open pool or pool set");
 		return NULL;
 	}
@@ -284,7 +284,7 @@ pmemlog_open_common(const char *path, int cow)
 err:
 	LOG(4, "error clean up");
 	int oerrno = errno;
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 	errno = oerrno;
 	return NULL;
 }
@@ -312,7 +312,7 @@ pmemlog_close(PMEMlogpool *plp)
 		ERR("!pthread_rwlock_destroy");
 	Free((void *)plp->rwlockp);
 
-	util_poolset_close(plp->set, 0);
+	pmemset_close(plp->set, 0);
 }
 
 /*

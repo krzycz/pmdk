@@ -31,7 +31,7 @@
  */
 
 /*
- * util_poolset.c -- unit test for util_pool_create() / util_pool_open()
+ * util_poolset.c -- unit test for pmemset_create() / pmemset_open()
  *
  * usage: util_poolset cmd minlen hdrsize [mockopts] setfile ...
  */
@@ -171,7 +171,7 @@ main(int argc, char *argv[])
 
 		switch (argv[1][0]) {
 		case 'c':
-			ret = util_pool_create(&set, fname, 0, &Pool_ht,
+			ret = pmemset_create(&set, fname, 0, &Pool_ht,
 				NULL, REPLICAS_ENABLED);
 			if (ret == -1)
 				UT_OUT("!%s: util_pool_create", fname);
@@ -184,17 +184,17 @@ main(int argc, char *argv[])
 				util_poolset_chmod(set, S_IWUSR | S_IRUSR);
 #endif
 				poolset_info(fname, set, 0);
-				util_poolset_close(set, 0); /* do not delete */
+				pmemset_close(set, 0); /* do not delete */
 			}
 			break;
 		case 'o':
-			ret = util_pool_open(&set, fname, 0 /* rdonly */,
+			ret = pmemset_open(&set, fname, 0 /* rdonly */,
 				&Pool_ht, NULL);
 			if (ret == -1)
 				UT_OUT("!%s: util_pool_open", fname);
 			else {
 				poolset_info(fname, set, 1);
-				util_poolset_close(set, 0); /* do not delete */
+				pmemset_close(set, 0); /* do not delete */
 			}
 			break;
 		}

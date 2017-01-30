@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -436,7 +436,7 @@ check_pool(const struct test_case *tc, int argc, char *argv[])
 		UT_ASSERTeq(data[POOL_HDR_SIZE + i], r);
 	}
 
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 
 	return 3;
 }
@@ -465,7 +465,7 @@ fill_pool(const struct test_case *tc, int argc, char *argv[])
 	for (size_t i = POOL_HDR_SIZE; i < set->poolsize; i++)
 		data[i] = rand();
 
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 
 	return 2;
 }

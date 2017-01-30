@@ -1118,12 +1118,12 @@ pmempool_sync(const char *poolset, unsigned flags)
 		goto err_close_all;
 	}
 
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 	close(fd);
 	return 0;
 
 err_close_all:
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 
 err_close_file:
 	close(fd);
@@ -1229,15 +1229,15 @@ pmempool_transform(const char *poolset_src,
 		goto err_free_poolout;
 	}
 
-	util_poolset_close(set_in, 0);
-	util_poolset_close(set_out, 0);
+	pmemset_close(set_in, 0);
+	pmemset_close(set_out, 0);
 	return 0;
 
 err_free_poolout:
-	util_poolset_close(set_out, del);
+	pmemset_close(set_out, del);
 
 err_free_poolin:
-	util_poolset_close(set_in, 0);
+	pmemset_close(set_in, 0);
 
 err:
 	if (errno == 0)

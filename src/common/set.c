@@ -97,8 +97,7 @@ set_remote_persist(void *ctx, const void *addr, size_t len, unsigned lane)
 {
 	LOG(15, "ctx %p addr %p len %zu lane %u", ctx, addr, len, lane);
 
-	/* XXX */
-	/* ASSERTne(rep->rpp, NULL); */
+	ASSERTne(ctx, NULL);
 
 	/*
 	 * The pool header is not visible on remote node from the local host
@@ -106,7 +105,7 @@ set_remote_persist(void *ctx, const void *addr, size_t len, unsigned lane)
 	 * on remote node.
 	 */
 	/* XXX */
-	uintptr_t offset = 0; /* (uintptr_t)addr - (uintptr_t)rep->base; */
+	uintptr_t offset = 0; /* (uintptr_t)addr - (uintptr_t)ops->base; */
 
 	int rv = Rpmem_persist(ctx, offset, len, lane);
 	if (rv) {
@@ -126,8 +125,8 @@ set_remote_persist(void *ctx, const void *addr, size_t len, unsigned lane)
  * from address 'addr' and saves it at address 'dest'.
  */
 static int
-set_remote_read(void *ctx, uintptr_t base, void *dest, void *addr,
-		size_t length)
+set_remote_read(void *ctx, uintptr_t base, void *dest,
+		void *addr, size_t length)
 {
 	LOG(3, "ctx %p base 0x%lx dest %p addr %p length %zu", ctx, base, dest,
 			addr, length);
@@ -412,7 +411,7 @@ set_memcpy_persist(struct pool_set *set, void *dest, const void *src,
 	unsigned lane = UINT_MAX;
 
 	if (set->remote)
-		lane = set_lane_hold(set);
+		lane = pmemset_lane_hold(set);
 
 	struct pool_replica *rep = set->replica[0];
 	void *ret = rep->p_ops.memcpy(dest, src, len);
@@ -427,7 +426,7 @@ set_memcpy_persist(struct pool_set *set, void *dest, const void *src,
 		if (rep->rpp == NULL) {
 			rep->p_ops.memcpy(rdest, src, len);
 		} else {
-			ret = rep->r_ops.persist(rep, rdest, len, lane);
+			ret = rep->r_ops.persist(rep->rpp, rdest, len, lane);
 			/*
 			 * if (ret == NULL)
 			 *	obj_handle_remote_persist_error(pop);
@@ -439,7 +438,7 @@ set_memcpy_persist(struct pool_set *set, void *dest, const void *src,
 
 exit:
 	if (set->remote)
-		set_lane_release(set);
+		pmemset_lane_release(set);
 
 	return ret;
 }
@@ -608,7 +607,7 @@ get_lane(uint64_t *locks, uint64_t *index, uint64_t nlocks)
 #define RLANE_DEFAULT 0
 
 unsigned
-set_lane_hold(struct pool_set *set)
+pmemset_lane_hold(struct pool_set *set)
 {
 	/*
 	 * Before runtime lane initialization all remote operations are
@@ -636,7 +635,7 @@ set_lane_hold(struct pool_set *set)
 }
 
 void
-set_lane_release(struct pool_set *set)
+pmemset_lane_release(struct pool_set *set)
 {
 	if (unlikely(!set->lanes_desc.runtime_nlanes)) {
 		ASSERT(set->remote);
@@ -670,7 +669,7 @@ set_memset_persist(struct pool_set *set, void *dest, int c, size_t len)
 	unsigned lane = UINT_MAX;
 
 	if (set->remote)
-		lane = set_lane_hold(set);
+		lane = pmemset_lane_hold(set);
 
 	struct pool_replica *rep = set->replica[0];
 	void *ret = rep->p_ops.memset(dest, c, len);
@@ -685,7 +684,7 @@ set_memset_persist(struct pool_set *set, void *dest, int c, size_t len)
 		if (rep->rpp == NULL) {
 			ret = rep->p_ops.memset(rdest, c, len);
 		} else {
-			ret = rep->r_ops.persist(rep, rdest, len, lane);
+			ret = rep->r_ops.persist(rep->rpp, rdest, len, lane);
 			/*
 			 * if (ret == NULL)
 			 *	obj_handle_remote_persist_error(pop);
@@ -697,7 +696,7 @@ set_memset_persist(struct pool_set *set, void *dest, int c, size_t len)
 
 exit:
 	if (set->remote)
-		set_lane_release(set);
+		pmemset_lane_release(set);
 
 	return ret;
 }
@@ -727,7 +726,7 @@ set_persist(struct pool_set *set, const void *addr, size_t len)
 	unsigned lane = UINT_MAX;
 
 	if (set->remote)
-		lane = set_lane_hold(set);
+		lane = pmemset_lane_hold(set);
 
 	struct pool_replica *rep = set->replica[0];
 	int ret = rep->p_ops.persist(addr, len);
@@ -745,7 +744,7 @@ set_persist(struct pool_set *set, const void *addr, size_t len)
 				ret = -1;
 			}
 		} else {
-			if (rep->r_ops.persist(rep, raddr, len, lane) == NULL) {
+			if (rep->r_ops.persist(rep->rpp, raddr, len, lane) == NULL) {
 				/*
 				 * if (ret == NULL)
 				 *	obj_handle_remote_persist_error(pop);
@@ -759,7 +758,7 @@ set_persist(struct pool_set *set, const void *addr, size_t len)
 
 exit:
 	if (set->remote)
-		set_lane_release(set);
+		pmemset_lane_release(set);
 
 	return ret;
 }
@@ -775,7 +774,7 @@ set_flush(struct pool_set *set, const void *addr, size_t len)
 	unsigned lane = UINT_MAX;
 
 	if (set->remote)
-		lane = set_lane_hold(set);
+		lane = pmemset_lane_hold(set);
 
 	struct pool_replica *rep = set->replica[0];
 	int ret = rep->p_ops.flush(addr, len);
@@ -805,7 +804,7 @@ set_flush(struct pool_set *set, const void *addr, size_t len)
 
 exit:
 	if (set->remote)
-		set_lane_release(set);
+		pmemset_lane_release(set);
 
 	return ret;
 }
@@ -910,7 +909,7 @@ set_replicas_init(struct pool_set *set)
 }
 
 int
-set_for_each_replica(struct pool_set *set,
+pmemset_foreach_replica(struct pool_set *set,
 		int (*func_cb)(struct pool_replica *rep, void *args),
 		void *args)
 {
@@ -1375,12 +1374,12 @@ util_replica_close_remote(struct pool_replica *rep, unsigned r, int del)
 }
 
 /*
- * util_poolset_close -- unmap and close all the parts of the pool set
+ * pmemset_close -- unmap and close all the parts of the pool set
  *
  * Optionally, it also unlinks the newly created pool set files.
  */
 void
-util_poolset_close(struct pool_set *set, int del)
+pmemset_close(struct pool_set *set, int del)
 {
 	LOG(3, "set %p del %d", set, del);
 
@@ -2975,7 +2974,7 @@ err_create:
 	errno = oerrno;
 err_poolset:
 	oerrno = errno;
-	util_poolset_close(set, 1);
+	pmemset_close(set, 1);
 	errno = oerrno;
 	return -1;
 err_remote:
@@ -2986,13 +2985,13 @@ err_remote:
 }
 
 /*
- * util_pool_create -- create a new memory pool (set or a single file)
+ * pmemset_create -- create a new memory pool (set or a single file)
  *
  * On success returns 0 and a pointer to a newly allocated structure
  * containing the info of all the parts of the pool set and replicas.
  */
 int
-util_pool_create(struct pool_set **setp, const char *path, size_t poolsize,
+pmemset_create(struct pool_set **setp, const char *path, size_t poolsize,
 	const struct pool_hdr_template *ht, unsigned *nlanes, int can_have_rep)
 {
 	LOG(3, "setp %p path %s poolsize %zu minsize %zu "
@@ -3291,19 +3290,19 @@ err_replica:
 	errno = oerrno;
 err_poolset:
 	oerrno = errno;
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 	errno = oerrno;
 	return -1;
 }
 
 /*
- * util_pool_open -- open a memory pool (set or a single file)
+ * pmemset_open -- open a memory pool (set or a single file)
  *
  * This routine does all the work, but takes a rdonly flag so internal
  * calls can map a read-only pool if required.
  */
 int
-util_pool_open(struct pool_set **setp, const char *path, int rdonly,
+pmemset_open(struct pool_set **setp, const char *path, int rdonly,
 	const struct pool_hdr_template *ht, unsigned *nlanes)
 {
 	LOG(3, "setp %p path %s rdonly %d minsize %zu sig %.8s major %u "
@@ -3374,7 +3373,7 @@ err_replica:
 	errno = oerrno;
 err_poolset:
 	oerrno = errno;
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 	errno = oerrno;
 	return -1;
 }
@@ -3466,7 +3465,7 @@ err_replica:
 	errno = oerrno;
 err_poolset:
 	oerrno = errno;
-	util_poolset_close(set, 0);
+	pmemset_close(set, 0);
 	errno = oerrno;
 	return -1;
 }
