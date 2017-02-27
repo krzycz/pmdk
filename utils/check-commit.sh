@@ -56,6 +56,8 @@ echo "TRAVIS_COMMIT_RANGE: $TRAVIS_COMMIT_RANGE"
 echo "TRAVIS_COMMIT: $TRAVIS_COMMIT"
 echo "COMMITS: $commits"
 
+git log -n 20 --oneline
+
 exit 1
 
 # valid area names
