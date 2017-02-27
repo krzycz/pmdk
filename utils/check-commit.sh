@@ -38,12 +38,12 @@
 # usage: ./check-commit.sh
 #
 
-if [[ $TRAVIS_REPO_SLUG != "pmem/nvml" \
-	|| $TRAVIS_EVENT_TYPE != "pull_request" ]];
-then
-	echo "SKIP: $0 can only be executed for pull requests to pmem/nvml"
-	exit 0
-fi
+#if [[ $TRAVIS_REPO_SLUG != "pmem/nvml" \
+#	|| $TRAVIS_EVENT_TYPE != "pull_request" ]];
+#then
+#	echo "SKIP: $0 can only be executed for pull requests to pmem/nvml"
+#	exit 0
+#fi
 
 # Find all the commits for the current build
 if [[ -n "$TRAVIS_COMMIT_RANGE" ]]; then
@@ -51,6 +51,12 @@ if [[ -n "$TRAVIS_COMMIT_RANGE" ]]; then
 else
 	commits=$TRAVIS_COMMIT
 fi
+
+echo "TRAVIS_COMMIT_RANGE: $TRAVIS_COMMIT_RANGE"
+echo "TRAVIS_COMMIT: $TRAVIS_COMMIT"
+echo "COMMITS: $commits"
+
+exit 1
 
 # valid area names
 AREAS="pmem\|rpmem\|log\|blk\|obj\|pool\|test\|benchmark\|examples\|vmem\|jemalloc\|cpp\|doc\|common"
