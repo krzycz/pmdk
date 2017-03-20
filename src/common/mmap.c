@@ -199,7 +199,7 @@ util_map_tmpfile(const char *dir, size_t size, size_t req_align)
 		goto err;
 	}
 
-	if ((errno = posix_fallocate(fd, 0, (off_t)size)) != 0) {
+	if ((errno = os_posix_fallocate(fd, 0, (off_t)size)) != 0) {
 		ERR("!posix_fallocate");
 		goto err;
 	}

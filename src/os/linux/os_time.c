@@ -1,6 +1,5 @@
 /*
- * Copyright 2014-2017, Intel Corporation
- * Copyright (c) 2016, Microsoft Corporation. All rights reserved.
+ * Copyright 2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,51 +31,18 @@
  */
 
 /*
- * win_common.c -- test common POSIX or Linux API that were implemented
- * for Windows by our library.
+ * os_time.c -- Linux-specific time functions
  */
+#include <time.h>
 
-#include "unittest.h"
+#include "os.h"
 
 /*
- * test_setunsetenv - test the setenv and unsetenv APIs
+ * os_clock_gettime -- returns elapsed time since the system was restarted
+ * or since Epoch, depending on the mode id
  */
-static void
-test_setunsetenv(void)
-{
-	os_unsetenv("TEST_SETUNSETENV_ONE");
-
-	/* set a new variable without overwriting - expect the new value */
-	UT_ASSERT(os_setenv("TEST_SETUNSETENV_ONE",
-		"test_setunsetenv_one", 0) == 0);
-	UT_ASSERT(strcmp(getenv("TEST_SETUNSETENV_ONE"),
-		"test_setunsetenv_one") == 0);
-
-	/* set an existing variable without overwriting - expect old value */
-	UT_ASSERT(os_setenv("TEST_SETUNSETENV_ONE",
-		"test_setunsetenv_two", 0) == 0);
-	UT_ASSERT(strcmp(getenv("TEST_SETUNSETENV_ONE"),
-		"test_setunsetenv_one") == 0);
-
-	/* set an existing variable with overwriting - expect the new value */
-	UT_ASSERT(os_setenv("TEST_SETUNSETENV_ONE",
-		"test_setunsetenv_two", 1) == 0);
-	UT_ASSERT(strcmp(getenv("TEST_SETUNSETENV_ONE"),
-		"test_setunsetenv_two") == 0);
-
-	/* unset our test value - expect it to be empty */
-	UT_ASSERT(os_unsetenv("TEST_SETUNSETENV_ONE") == 0);
-	UT_ASSERT(getenv("TEST_SETUNSETENV_ONE") == NULL);
-}
-
 int
-main(int argc, char *argv[])
+os_clock_gettime(int id, struct timespec *ts)
 {
-	START(argc, argv, "win_common - testing %s",
-		(argc > 1) ? argv[1] : "setunsetenv");
-
-	if (argc == 1 || (stricmp(argv[1], "setunsetenv") == 0))
-		test_setunsetenv();
-
-	DONE(NULL);
+	return clock_gettime(id, ts);
 }

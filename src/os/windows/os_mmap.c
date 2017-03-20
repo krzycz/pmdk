@@ -62,6 +62,9 @@
 #include "out.h"
 #include "win_mmap.h"
 
+#include "os.h"
+
+
 /* uncomment for more debug information on mmap trackers */
 /* #define MMAP_DEBUG_INFO */
 

@@ -45,7 +45,6 @@
 #include <stdbool.h>
 #include <inttypes.h>
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
 #include <libgen.h>
 #include <err.h>

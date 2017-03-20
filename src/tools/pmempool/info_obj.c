@@ -37,7 +37,6 @@
 #include <stdbool.h>
 #include <err.h>
 #include <signal.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
 #include <assert.h>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,27 +31,34 @@
  */
 
 /*
- * elf.h -- ELF-compatible enums
+ * os_common.c -- XXX
  */
+#include <stdlib.h>
+#include "os.h"
 
-#ifndef ELF_H
-#define ELF_H 1
+/*
+ * os_setenv -- change or add an environment variable
+ */
+int
+os_setenv(const char *name, const char *value, int overwrite)
+{
+	return setenv(name, value, overwrite);
+}
 
-/* machine */
-#define EM_NONE 0
-#define EM_386 3
-#define EM_IA_64 50
-#define EM_X86_64 62
-#define EM_NUM 95
+/*
+ * os_unsetenv -- remove an environment variable
+ */
+int
+os_unsetenv(const char *name)
+{
+	return unsetenv(name);
+}
 
-/* class */
-#define ELFCLASSNONE 0
-#define ELFCLASS32 1
-#define ELFCLASS64 2
-
-/* data */
-#define ELFDATANONE 0
-#define ELFDATA2LSB 1
-#define ELFDATA2MSB 2
-
-#endif
+/*
+ * os_rand_r -- rand_r for Linux
+ */
+int
+os_rand_r(unsigned *seedp)
+{
+	return rand_r(seedp);
+}

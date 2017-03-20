@@ -1,4 +1,5 @@
 /*
+ * Copyright 2017, Intel Corporation
  * Copyright (c) 2016, Microsoft Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,12 +35,13 @@
  * win_common.c -- Our implementation of few missing POSIX APIs or LINUX
  * system calls in Windows
  */
+#include "os.h"
 
 /*
- * setenv -- change or add an environment variable
+ * os_setenv -- change or add an environment variable
  */
 int
-setenv(const char *name, const char *value, int overwrite)
+os_setenv(const char *name, const char *value, int overwrite)
 {
 	errno_t err;
 
@@ -63,10 +65,10 @@ setenv(const char *name, const char *value, int overwrite)
 }
 
 /*
- * unsetenv -- remove an environment variable
+ * os_unsetenv -- remove an environment variable
  */
 int
-unsetenv(const char *name)
+os_unsetenv(const char *name)
 {
 	errno_t err;
 	if ((err = _putenv_s(name, "")) != 0) {
@@ -78,7 +80,7 @@ unsetenv(const char *name)
 }
 
 /*
- * rand_r -- rand_r for windows
+ * os_rand_r -- rand_r for windows
  *
  * XXX: RAND_MAX is equal 0x7fff on Windows, so to get 32 bit random number
  *	we need to merge two numbers returned by rand_s().
@@ -93,7 +95,7 @@ unsetenv(const char *name)
  *	implementation.
  */
 int
-rand_r(unsigned *seedp)
+os_rand_r(unsigned *seedp)
 {
 	UNREFERENCED_PARAMETER(seedp);
 	unsigned part1, part2;

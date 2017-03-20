@@ -37,14 +37,21 @@
 TOP := $(dir $(lastword $(MAKEFILE_LIST)))../../..
 include $(TOP)/src/common.inc
 
+OS=$(TOP)/src/os/linux
+
 vpath %.c $(TOP)/src/common
 vpath %.h $(TOP)/src/common
 
+vpath %.c $(OS)
+vpath %.h $(OS)
+
 TARGET = libut.a
 OBJS = ut.o ut_alloc.o ut_file.o ut_pthread.o ut_signal.o ut_backtrace.o\
-	os_linux.o
+	$(OS)/os_file.o $(OS)/os_signal.o $(OS)/os_time.o $(OS)/os_common.o
+
 CFLAGS = -I$(TOP)/src/include
 CFLAGS += -I$(TOP)/src/common
+CFLAGS += -I$(TOP)/src/os
 CFLAGS += -std=gnu99
 CFLAGS += -ggdb
 CFLAGS += -Wall

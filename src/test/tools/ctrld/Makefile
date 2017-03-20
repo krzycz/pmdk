@@ -1,4 +1,4 @@
-# Copyright 2016, Intel Corporation
+# Copyright 2016-2017, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,9 +34,10 @@
 SCP_TO_REMOTE_NODES = y
 
 TOP = ../../../..
+OS = $(TOP)/src/os
 
 TARGET = ctrld
 
-OBJS = ctrld.o
+OBJS = ctrld.o $(OS)/linux/os_file.o
 
 include $(TOP)/src/tools/Makefile.inc

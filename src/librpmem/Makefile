@@ -40,7 +40,7 @@ LIBRARY_NAME = rpmem
 LIBRARY_SO_VERSION = 1
 LIBRARY_VERSION = 0.0
 SOURCE = $(COMMON)/util.c\
-	$(COMMON)/os_linux.c\
+	$(OS)/os_file.c\
 	$(COMMON)/util_linux.c\
 	$(COMMON)/out.c\
 	librpmem.c\

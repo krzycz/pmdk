@@ -31,59 +31,45 @@
  */
 
 /*
- * os.h -- os abstaction layer
+ * os_mmap.c -- memory-mapped files for Linux
  */
 
-#ifndef NVML_OS_H
-#define NVML_OS_H 1
+#include <sys/mman.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <sys/stat.h>
-#include <stdio.h>
-
-#ifndef _WIN32
-typedef struct stat os_stat_t;
-#define os_fstat	fstat
-#define os_lseek	lseek
-#else
-typedef struct _stat64 os_stat_t;
-#define os_fstat	_fstat64
-#define os_lseek	_lseeki64
-#endif
-
-#define os_close close
-
-int os_open(const char *pathname, int flags, ...);
-int os_stat(const char *pathname, os_stat_t *buf);
-int os_unlink(const char *pathname);
-int os_access(const char *pathname, int mode);
-FILE *os_fopen(const char *pathname, const char *mode);
-FILE *os_fdopen(int fd, const char *mode);
-int os_chmod(const char *pathname, mode_t mode);
-int os_mkstemp(char *temp);
+#include "os.h"
 
 /*
- * XXX: missing APis (used in ut_file.c)
- *
- * ftruncate
- * rename
- * flock
- * read
- * write
- * writev
- * posix_fallocate
- * strsignal
- * rand_r
- * setenv
- * unsetenv
- * clock_gettime
+ * os_mmap -- map file into memory
  */
-
-#ifdef __cplusplus
+void *
+os_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
+{
+	return mmap(addr, len, prot, flags, fd, offset);
 }
-#endif
 
-#endif /* os.h */
+/*
+ * os_munmap -- delete mapping
+ */
+int
+os_munmap(void *addr, size_t len)
+{
+	return munmap(addr, len);
+}
+
+/*
+ * os_msync -- synchronize a file with a memory map
+ */
+int
+os_msync(void *addr, size_t len, int flags)
+{
+	return msync(addr, len, flags);
+}
+
+/*
+ * os_mprotect -- set protection on a region of memory
+ */
+int
+os_mprotect(void *addr, size_t len, int prot)
+{
+	return mprotect(addr, len, prot);
+}

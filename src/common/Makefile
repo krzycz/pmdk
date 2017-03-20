@@ -38,7 +38,7 @@ SOURCE =\
 	file_linux.c\
 	mmap.c\
 	mmap_linux.c\
-	os_linux.c\
+	$(OS)/os_file.c\
 	out.c\
 	pool_hdr.c\
 	pool_hdr_linux.c\

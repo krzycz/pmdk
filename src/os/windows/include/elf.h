@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,5 +31,27 @@
  */
 
 /*
- * fake features.h
+ * elf.h -- ELF-compatible enums
  */
+
+#ifndef ELF_H
+#define ELF_H 1
+
+/* machine */
+#define EM_NONE 0
+#define EM_386 3
+#define EM_IA_64 50
+#define EM_X86_64 62
+#define EM_NUM 95
+
+/* class */
+#define ELFCLASSNONE 0
+#define ELFCLASS32 1
+#define ELFCLASS64 2
+
+/* data */
+#define ELFDATANONE 0
+#define ELFDATA2LSB 1
+#define ELFDATA2MSB 2
+
+#endif

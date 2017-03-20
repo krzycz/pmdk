@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  * Copyright (c) 2016, Microsoft Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,9 @@
  */
 
 /*
- * win_time.c -- Windows emulation of Linux-specific time functions
+ * os_time.c -- Windows emulation of Linux-specific time functions
  */
+#include "os.h"
 
 #define NSEC_IN_SEC 1000000000ull
 /* number of useconds between 1970-01-01T00:00:00Z and 1601-01-01T00:00:00Z */

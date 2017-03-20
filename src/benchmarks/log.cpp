@@ -44,6 +44,8 @@
 #include "benchmark.hpp"
 #include "libpmemlog.h"
 
+#include "os.h"
+
 /*
  * Size of pool header, pool descriptor
  * and additional page alignment overhead
@@ -230,7 +232,7 @@ fileio_appendv(struct benchmark *bench, struct operation_info *info)
 	struct iovec *iov = &worker_info->iov[info->index * lb->args->vec_size];
 	size_t vec_size = worker_info->vec_sizes[info->index];
 
-	if (writev(lb->fd, iov, lb->args->vec_size) != (ssize_t)vec_size) {
+	if (os_writev(lb->fd, iov, lb->args->vec_size) != (ssize_t)vec_size) {
 		perror("writev");
 		return -1;
 	}

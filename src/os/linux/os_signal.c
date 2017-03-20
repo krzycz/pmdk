@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,5 +31,18 @@
  */
 
 /*
- * fake libgen.h
+ * os_signal.c -- Linux specific APIs
  */
+#define _GNU_SOURCE
+#include <string.h>
+
+#include "os.h"
+
+/*
+ * os_strsignal -- returns a string describing the signal number 'sig'
+ */
+const char *
+os_strsignal(int sig)
+{
+	return strsignal(sig);
+}

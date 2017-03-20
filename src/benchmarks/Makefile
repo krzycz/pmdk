@@ -45,6 +45,7 @@ vpath %.c $(TOP)/src/libpmemobj
 vpath %.c $(TOP)/src/common
 vpath %.c $(TOP)/src/librpmem
 vpath %.c $(TOP)/src/rpmem_common
+vpath %.c $(TOP)/src/os/linux
 
 
 BENCHMARK = pmembench
@@ -124,6 +125,7 @@ CXXFLAGS += -pthread
 CXXFLAGS += -I../include
 CXXFLAGS += -I../libpmemobj
 CXXFLAGS += -I../common
+CXXFLAGS += -I../os
 CXXFLAGS += -I../examples/libpmemobj/map
 CXXFLAGS += -I../rpmem_common
 CXXFLAGS += -I../librpmem

@@ -165,7 +165,6 @@
  */
 
 #include <sys/mman.h>
-#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -173,7 +172,6 @@
 #include <emmintrin.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <limits.h>
 
 #ifdef _WIN32
@@ -646,12 +644,12 @@ pmem_map_fileU(const char *path, size_t len, int flags,
 
 	if (flags & PMEM_FILE_CREATE) {
 		if (flags & PMEM_FILE_SPARSE) {
-			if (ftruncate(fd, (off_t)len) != 0) {
+			if (os_ftruncate(fd, (off_t)len) != 0) {
 				ERR("!ftruncate");
 				goto err;
 			}
 		} else {
-			if ((errno = posix_fallocate(fd, 0, (off_t)len)) != 0) {
+			if ((errno = os_posix_fallocate(fd, 0, (off_t)len)) != 0) {
 				ERR("!posix_fallocate");
 				goto err;
 			}

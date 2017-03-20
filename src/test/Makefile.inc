@@ -43,6 +43,8 @@ include $(TOP)/src/common.inc
 
 LIBS_DIR=$(TOP)/src
 
+OS=$(TOP)/src/os
+
 EXAMPLES_DIR=$(TOP)/src/examples
 EX_LIBPMEM=$(EXAMPLES_DIR)/libpmem
 EX_LIBPMEMBLK=$(EXAMPLES_DIR)/libpmemblk
@@ -184,7 +186,7 @@ extract_funcs = $(shell \
     grep -Po '($(WRAPPER_FUNCS))\$(PAREN)\K[^,]*' $(1) | \
     awk '{print "-Wl,--wrap="$$0}')
 
-INCS += -I../unittest -I$(TOP)/src/include -I$(TOP)/src/common
+INCS += -I../unittest -I$(TOP)/src/include -I$(TOP)/src/common -I$(TOP)/src/os
 
 COMMON_FLAGS  = -ggdb
 COMMON_FLAGS += -Wall

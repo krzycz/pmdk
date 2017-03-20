@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +47,8 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <stdarg.h>
+
+#include "os.h"
 
 #define APP_NAME "ctrld"
 #define BUFF_SIZE 4096
@@ -188,7 +190,7 @@ do_run(const char *pid_file, char *cmd, char *argv[], unsigned timeout)
 		goto err;
 	}
 
-	if (flock(fd, LOCK_EX | LOCK_NB)) {
+	if (os_flock(fd, LOCK_EX | LOCK_NB)) {
 		CTRLD_LOG("!flock");
 		goto err;
 	}
@@ -253,7 +255,7 @@ do_run(const char *pid_file, char *cmd, char *argv[], unsigned timeout)
 			goto err;
 		}
 
-		if (ftruncate(fileno(fh), 0)) {
+		if (os_ftruncate(fileno(fh), 0)) {
 			CTRLD_LOG("!ftruncate");
 			goto err;
 		}
@@ -294,7 +296,7 @@ do_wait(char *pid_file, int timeout)
 
 	int t = 0;
 	while ((timeout == -1 || t < timeout) &&
-		flock(fd, LOCK_EX | LOCK_NB)) {
+			os_flock(fd, LOCK_EX | LOCK_NB)) {
 		sleep(1);
 		t++;
 	}

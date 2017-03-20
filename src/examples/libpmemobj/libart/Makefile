@@ -1,6 +1,6 @@
 #
 # Copyright 2016, FUJITSU TECHNOLOGY SOLUTIONS GMBH
-# Copyright 2016, Intel Corporation
+# Copyright 2016-2017, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -52,12 +52,17 @@ LIBRARIES = art
 
 include ../../Makefile.inc
 
+OS=$(TOP)/src/os
+vpath %.c $(TOP)/os/linux
+
 LIBS = -lpmemobj -pthread -lart
 
 $(PROGS): | $(DYNAMIC_LIBRARIES)
 $(PROGS): LDFLAGS += -Wl,-rpath=. -L.
 
+CFLAGS += -I$(OS) -I$(TOP)/src/common
+
 libart.o: art.o
 
-arttree: arttree.o
+arttree: arttree.o $(OS)/linux/os_file.o
 arttree_structures: arttree_structures.o arttree_examine.o arttree_search.o

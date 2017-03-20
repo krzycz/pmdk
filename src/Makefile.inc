@@ -43,7 +43,10 @@ vpath %.c $(RPMEM_COMMON)
 COMMON = $(TOP)/src/common
 vpath %.c $(COMMON)
 
-INCS += -I../include -I../common/
+OS = $(TOP)/src/os/linux
+vpath %.c $(OS)
+
+INCS += -I../include -I../common -I../os
 
 CFLAGS += -std=gnu99
 CFLAGS += -Wall
@@ -125,7 +128,8 @@ ifneq ($(SOURCE),)
 _OBJS = $(SOURCE:.c=.o)
 _OBJS_COMMON = $(patsubst $(COMMON)/%, %, $(_OBJS))
 _OBJS_RPMEM_COMMON = $(patsubst $(RPMEM_COMMON)/%, %, $(_OBJS_COMMON))
-OBJS += $(addprefix $(objdir)/, $(_OBJS_RPMEM_COMMON))
+_OBJS_OS = $(patsubst $(OS)/%, %, $(_OBJS_RPMEM_COMMON))
+OBJS += $(addprefix $(objdir)/, $(_OBJS_OS))
 endif
 
 ifneq ($(HEADERS),)

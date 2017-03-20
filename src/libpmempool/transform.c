@@ -36,7 +36,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <fcntl.h>

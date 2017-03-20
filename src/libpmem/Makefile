@@ -38,12 +38,13 @@ LIBRARY_VERSION = 0.0
 SOURCE =\
 	$(COMMON)/file.c\
 	$(COMMON)/file_linux.c\
-	$(COMMON)/os_linux.c\
 	$(COMMON)/out.c\
 	$(COMMON)/util.c\
 	$(COMMON)/util_linux.c\
 	$(COMMON)/mmap.c\
 	$(COMMON)/mmap_linux.c\
+	$(OS)/os_file.c\
+	$(OS)/os_mmap.c\
 	libpmem.c\
 	cpu.c\
 	pmem.c\

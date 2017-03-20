@@ -1,6 +1,6 @@
 /*
  * Copyright 2016, FUJITSU TECHNOLOGY SOLUTIONS GMBH
- * Copyright 2016, Intel Corporation
+ * Copyright 2016-2017, Intel Corporation
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,6 +61,8 @@
 #include <sys/types.h>
 #include "libpmemobj.h"
 #include "arttree.h"
+
+#include "os.h"
 
 /*
  * dummy structure so far; this should correspond to the datastore
@@ -283,7 +285,7 @@ art_tree_map_init(struct datastore *ds, struct ds_context *ctx)
 		}
 
 		/* allocate the pmem */
-		if ((errno = posix_fallocate(ctx->fd, 0, ctx->psize)) != 0) {
+		if ((errno = os_posix_fallocate(ctx->fd, 0, ctx->psize)) != 0) {
 			perror("posix_fallocate");
 			errors++;
 		}

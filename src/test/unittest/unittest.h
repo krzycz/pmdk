@@ -106,7 +106,6 @@ extern "C" {
 #include <time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/file.h>
 #include <sys/mount.h>

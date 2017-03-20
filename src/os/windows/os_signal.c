@@ -1,4 +1,5 @@
 /*
+ * Copyright 2017, Intel Corporation
  * Copyright (c) 2016, Microsoft Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,7 +32,7 @@
  */
 
 /*
- * win_signal.c -- Windows emulation of Linux specific APIs
+ * os_signal.c -- Windows emulation of Linux specific APIs
  */
 
 /*

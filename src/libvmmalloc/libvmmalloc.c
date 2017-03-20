@@ -81,6 +81,8 @@
 #include "vmmalloc.h"
 #include "valgrind_internal.h"
 
+#include "os.h"
+
 #define HUGE (2 * 1024 * 1024)
 
 /*
@@ -361,7 +363,7 @@ libvmmalloc_create(const char *dir, size_t size)
 	if (Fd == -1)
 		return NULL;
 
-	if ((errno = posix_fallocate(Fd, 0, (off_t)size)) != 0) {
+	if ((errno = os_posix_fallocate(Fd, 0, (off_t)size)) != 0) {
 		ERR("!posix_fallocate");
 		(void) close(Fd);
 		return NULL;
@@ -413,7 +415,7 @@ libvmmalloc_clone(void)
 	if (Fd_clone == -1)
 		return -1;
 
-	if ((errno = posix_fallocate(Fd_clone, 0, (off_t)Vmp->size)) != 0) {
+	if ((errno = os_posix_fallocate(Fd_clone, 0, (off_t)Vmp->size)) != 0) {
 		ERR("!posix_fallocate");
 		goto err_close;
 	}
