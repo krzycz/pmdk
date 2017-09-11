@@ -110,6 +110,7 @@ OBJ_TESTS = \
 	obj_redo_log\
 	obj_ringbuf\
 	obj_strdup\
+	obj_tls\
 	obj_toid\
 	obj_tx_alloc\
 	obj_tx_add_range\
