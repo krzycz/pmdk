@@ -143,13 +143,18 @@ struct tx_parameters {
 struct tx_parameters *
 tx_params_new(void)
 {
+	LOG(3, NULL);
+
 	struct tx_parameters *tx_params = Malloc(sizeof(*tx_params));
-	if (tx_params == NULL)
+	if (tx_params == NULL) {
+		ERR("!Malloc");
 		return NULL;
+	}
 
 	tx_params->cache_size = TX_DEFAULT_RANGE_CACHE_SIZE;
 	tx_params->cache_threshold = TX_DEFAULT_RANGE_CACHE_THRESHOLD;
 
+	LOG(3, "return %p", tx_params);
 	return tx_params;
 }
 
@@ -159,6 +164,8 @@ tx_params_new(void)
 void
 tx_params_delete(struct tx_parameters *tx_params)
 {
+	LOG(3, "tx_params %p", tx_params);
+
 	Free(tx_params);
 }
 
@@ -172,6 +179,8 @@ obj_tx_abort(int errnum, int user);
 static inline int
 obj_tx_abort_err(int errnum)
 {
+	LOG(3, "errnum %d", errnum);
+
 	obj_tx_abort(errnum, 0);
 	return errnum;
 }
@@ -183,6 +192,8 @@ obj_tx_abort_err(int errnum)
 static inline PMEMoid
 obj_tx_abort_null(int errnum)
 {
+	LOG(3, "errnum %d", errnum);
+
 	obj_tx_abort(errnum, 0);
 	return OID_NULL;
 }
@@ -205,7 +216,8 @@ obj_tx_abort_null(int errnum)
 static int
 constructor_tx_alloc(void *ctx, void *ptr, size_t usable_size, void *arg)
 {
-	LOG(3, NULL);
+	LOG(3, "ctx %p ptr %p usable_size %zu arg %p",
+		ctx, ptr, usable_size, arg);
 
 	ASSERTne(ptr, NULL);
 	ASSERTne(arg, NULL);
@@ -227,7 +239,9 @@ constructor_tx_alloc(void *ctx, void *ptr, size_t usable_size, void *arg)
 static int
 constructor_tx_copy(void *ctx, void *ptr, size_t usable_size, void *arg)
 {
-	LOG(3, NULL);
+	LOG(3, "ctx %p ptr %p usable_size %zu arg %p",
+		ctx, ptr, usable_size, arg);
+
 	PMEMobjpool *pop = ctx;
 
 	ASSERTne(ptr, NULL);
@@ -249,7 +263,9 @@ constructor_tx_copy(void *ctx, void *ptr, size_t usable_size, void *arg)
 static int
 constructor_tx_add_range(void *ctx, void *ptr, size_t usable_size, void *arg)
 {
-	LOG(3, NULL);
+	LOG(3, "ctx %p ptr %p usable_size %zu arg %p",
+		ctx, ptr, usable_size, arg);
+
 	PMEMobjpool *pop = ctx;
 
 	ASSERTne(ptr, NULL);
@@ -286,6 +302,8 @@ constructor_tx_add_range(void *ctx, void *ptr, size_t usable_size, void *arg)
 static inline void
 tx_set_state(PMEMobjpool *pop, struct lane_tx_layout *layout, uint64_t state)
 {
+	LOG(3, "pop %p layout %p state %" PRIx64, pop, layout, state);
+
 	layout->state = state;
 	pmemops_persist(&pop->p_ops, &layout->state, sizeof(layout->state));
 }
@@ -296,6 +314,8 @@ tx_set_state(PMEMobjpool *pop, struct lane_tx_layout *layout, uint64_t state)
 static void
 tx_clear_vec_entry(PMEMobjpool *pop, uint64_t *entry)
 {
+	LOG(3, "pop %p entry %p", pop, entry);
+
 	VALGRIND_ADD_TO_TX(entry, sizeof(*entry));
 	*entry = 0;
 	pmemops_persist(&pop->p_ops, entry, sizeof(*entry));
@@ -308,6 +328,8 @@ tx_clear_vec_entry(PMEMobjpool *pop, uint64_t *entry)
 static void
 tx_free_vec_entry(PMEMobjpool *pop, uint64_t *entry)
 {
+	LOG(3, "pop %p entry %p", pop, entry);
+
 	pfree(pop, entry);
 }
 
@@ -318,6 +340,8 @@ static void
 tx_clear_undo_log_vg(PMEMobjpool *pop, uint64_t off, enum tx_clr_flag flags)
 {
 #ifdef USE_VG_PMEMCHECK
+	LOG(3, "pop %p off %" PRIu64 " flags %x", pop, off, flags);
+
 	if (!On_valgrind)
 		return;
 
@@ -352,7 +376,7 @@ static void
 tx_clear_undo_log(PMEMobjpool *pop, struct pvector_context *undo,
 	enum tx_clr_flag flags)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p undo %p flags %x", pop, undo, flags);
 
 	uint64_t val;
 
@@ -373,7 +397,7 @@ tx_clear_undo_log(PMEMobjpool *pop, struct pvector_context *undo,
 static void
 tx_abort_alloc(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p tx_rt %p", pop, tx_rt);
 
 	tx_clear_undo_log(pop, tx_rt->ctx[UNDO_ALLOC],
 		TX_CLR_FLAG_FREE |
@@ -387,7 +411,7 @@ tx_abort_alloc(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt)
 static void
 tx_abort_free(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p tx_rt %p", pop, tx_rt);
 
 	tx_clear_undo_log(pop, tx_rt->ctx[UNDO_FREE], 0);
 }
@@ -406,6 +430,8 @@ SLIST_HEAD(txr, tx_range_data);
 static void
 tx_remove_range(struct txr *tx_ranges, void *begin, void *end)
 {
+	LOG(3, "tx_ranges %p begin %p end %p", tx_ranges, begin, end);
+
 	struct tx_range_data *txr = SLIST_FIRST(tx_ranges);
 
 	while (txr) {
@@ -460,6 +486,8 @@ tx_remove_range(struct txr *tx_ranges, void *begin, void *end)
 static void
 tx_restore_range(PMEMobjpool *pop, struct tx *tx, struct tx_range *range)
 {
+	LOG(3, "pop %p tx %p range %p", pop, tx, range);
+
 	COMPILE_ERROR_ON(sizeof(PMEMmutex) != _POBJ_CL_SIZE);
 	COMPILE_ERROR_ON(sizeof(PMEMrwlock) != _POBJ_CL_SIZE);
 	COMPILE_ERROR_ON(sizeof(PMEMcond) != _POBJ_CL_SIZE);
@@ -517,7 +545,7 @@ static void
 tx_foreach_set(PMEMobjpool *pop, struct tx *tx, struct tx_undo_runtime *tx_rt,
 	void (*cb)(PMEMobjpool *pop, struct tx *tx, struct tx_range *range))
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p tx %p tx_rt %p cb %p", pop, tx, tx_rt, cb);
 
 	struct tx_range *range = NULL;
 	uint64_t off;
@@ -557,6 +585,8 @@ tx_foreach_set(PMEMobjpool *pop, struct tx *tx, struct tx_undo_runtime *tx_rt,
 static void
 tx_abort_restore_range(PMEMobjpool *pop, struct tx *tx, struct tx_range *range)
 {
+	LOG(3, "pop %p tx %p range %p", pop, tx, range);
+
 	tx_restore_range(pop, tx, range);
 	VALGRIND_REMOVE_FROM_TX(OBJ_OFF_TO_PTR(pop, range->offset),
 			range->size);
@@ -568,6 +598,8 @@ tx_abort_restore_range(PMEMobjpool *pop, struct tx *tx, struct tx_range *range)
 static void
 tx_abort_recover_range(PMEMobjpool *pop, struct tx *tx, struct tx_range *range)
 {
+	LOG(3, "pop %p tx %p range %p", pop, tx, range);
+
 	ASSERTeq(tx, NULL);
 	void *ptr = OBJ_OFF_TO_PTR(pop, range->offset);
 	pmemops_memcpy_persist(&pop->p_ops, ptr, range->data, range->size);
@@ -583,7 +615,7 @@ static void
 tx_clear_set_cache_but_first(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt,
 	struct tx *tx, enum tx_clr_flag vg_flags)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p tx_rt %p tx %p vg_flags %x", pop, tx_rt, tx, vg_flags);
 
 	struct pvector_context *cache_undo = tx_rt->ctx[UNDO_SET_CACHE];
 	uint64_t first_cache = pvector_first(cache_undo);
@@ -636,7 +668,7 @@ tx_clear_set_cache_but_first(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt,
 static void
 tx_abort_set(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt, int recovery)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p tx_rt %p recovery %d", pop, tx_rt, recovery);
 
 	struct tx *tx = recovery ? NULL : get_tx();
 
@@ -663,7 +695,7 @@ tx_abort_set(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt, int recovery)
 static void
 tx_post_commit_alloc(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p tx_rt %p", pop, tx_rt);
 
 	tx_clear_undo_log(pop, tx_rt->ctx[UNDO_ALLOC],
 			TX_CLR_FLAG_VG_TX_REMOVE);
@@ -676,7 +708,7 @@ tx_post_commit_alloc(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt)
 static void
 tx_post_commit_free(PMEMobjpool *pop, struct tx_undo_runtime *tx_rt)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p tx_rt %p", pop, tx_rt);
 
 	tx_clear_undo_log(pop, tx_rt->ctx[UNDO_FREE],
 		TX_CLR_FLAG_FREE | TX_CLR_FLAG_VG_TX_REMOVE);
@@ -691,6 +723,8 @@ static void
 tx_post_commit_range_vg_tx_remove(PMEMobjpool *pop, struct tx *tx,
 		struct tx_range *range)
 {
+	LOG(3, "pop %p tx %p range %p", pop, tx, range);
+
 	VALGRIND_REMOVE_FROM_TX(OBJ_OFF_TO_PTR(pop, range->offset),
 			range->size);
 }
@@ -704,7 +738,7 @@ static void
 tx_post_commit_set(PMEMobjpool *pop, struct tx *tx,
 		struct tx_undo_runtime *tx_rt, int recovery)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p tx %p tx_rt %p recovery %d", pop, tx, tx_rt, recovery);
 
 #ifdef USE_VG_PMEMCHECK
 	if (On_valgrind)
@@ -727,6 +761,9 @@ tx_post_commit_set(PMEMobjpool *pop, struct tx *tx,
 static void
 tx_flush_range(uint64_t offset, uint64_t size_flags, void *ctx)
 {
+	LOG(3, "offset %" PRIu64 " size_flags %" PRIx64 " ctx %p",
+		offset, size_flags, ctx);
+
 	if (size_flags & RANGE_FLAG_NO_FLUSH)
 		return;
 	PMEMobjpool *pop = ctx;
@@ -740,7 +777,7 @@ tx_flush_range(uint64_t offset, uint64_t size_flags, void *ctx)
 static void
 tx_pre_commit(PMEMobjpool *pop, struct tx *tx, struct lane_tx_runtime *lane)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p tx %p lane %p", pop, tx, lane);
 
 	ASSERTne(tx->section->runtime, NULL);
 
@@ -756,7 +793,7 @@ static int
 tx_rebuild_undo_runtime(PMEMobjpool *pop, struct lane_tx_layout *layout,
 	struct tx_undo_runtime *tx_rt)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p layout %p tx_rt %p", pop, layout, tx_rt);
 
 	int i;
 	for (i = UNDO_ALLOC; i < MAX_UNDO_TYPES; ++i) {
@@ -784,7 +821,7 @@ error_init:
 static void
 tx_destroy_undo_runtime(struct tx_undo_runtime *tx)
 {
-	LOG(3, NULL);
+	LOG(3, "tx %p", tx);
 
 	for (int i = UNDO_ALLOC; i < MAX_UNDO_TYPES; ++i)
 		pvector_delete(tx->ctx[i]);
@@ -797,7 +834,7 @@ static void
 tx_post_commit(PMEMobjpool *pop, struct tx *tx, struct lane_tx_layout *layout,
 		int recovery)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p layout %p recovery %d", pop, layout, recovery);
 
 	struct tx_undo_runtime *tx_rt;
 	struct tx_undo_runtime new_rt = { .ctx = {NULL, } };
@@ -827,6 +864,8 @@ tx_post_commit(PMEMobjpool *pop, struct tx *tx, struct lane_tx_layout *layout,
 static void
 tx_abort_register_valgrind(PMEMobjpool *pop, struct pvector_context *ctx)
 {
+	LOG(3, "pop %p ctx %p", pop, ctx);
+
 	uint64_t off;
 	for (off = pvector_first(ctx); off != 0; off = pvector_next(ctx)) {
 		/*
@@ -849,7 +888,8 @@ static void
 tx_abort(PMEMobjpool *pop, struct lane_tx_runtime *lane,
 		struct lane_tx_layout *layout, int recovery)
 {
-	LOG(3, NULL);
+	LOG(3, "pop %p lane %p layout %p recovery %d",
+		pop, lane, layout, recovery);
 
 	struct tx_undo_runtime *tx_rt;
 	struct tx_undo_runtime new_rt = { .ctx = {NULL, } };
@@ -890,6 +930,8 @@ tx_abort(PMEMobjpool *pop, struct lane_tx_runtime *lane,
 PMEMobjpool *
 tx_get_pop(void)
 {
+	LOG(15, NULL);
+
 	return get_tx()->pop;
 }
 
@@ -899,7 +941,7 @@ tx_get_pop(void)
 static int
 add_to_tx_and_lock(struct tx *tx, enum pobj_tx_param type, void *lock)
 {
-	LOG(15, NULL);
+	LOG(15, "tx %p type %d lock %p", tx, type, lock);
 
 	int retval = 0;
 	struct tx_lock_data *txl;
@@ -951,7 +993,7 @@ add_to_tx_and_lock(struct tx *tx, enum pobj_tx_param type, void *lock)
 static void
 release_and_free_tx_locks(struct tx *tx)
 {
-	LOG(15, NULL);
+	LOG(15, "tx %p", tx);
 
 	while (!SLIST_EMPTY(&tx->tx_locks)) {
 		struct tx_lock_data *tx_lock = SLIST_FIRST(&tx->tx_locks);
@@ -1989,7 +2031,9 @@ pmemobj_tx_zalloc(size_t size, uint64_t type_num)
 PMEMoid
 pmemobj_tx_xalloc(size_t size, uint64_t type_num, uint64_t flags)
 {
-	LOG(3, NULL);
+	LOG(3, "size %zu type_num %" PRIx64 " flags %" PRIx64,
+		size, type_num, flags);
+
 	struct tx *tx = get_tx();
 
 	ASSERT_IN_TX(tx);
@@ -2016,7 +2060,8 @@ pmemobj_tx_xalloc(size_t size, uint64_t type_num, uint64_t flags)
 PMEMoid
 pmemobj_tx_realloc(PMEMoid oid, size_t size, uint64_t type_num)
 {
-	LOG(3, NULL);
+	LOG(3, "size %zu type_num %" PRIx64, size, type_num);
+
 	struct tx *tx = get_tx();
 
 	ASSERT_IN_TX(tx);
@@ -2033,7 +2078,9 @@ pmemobj_tx_realloc(PMEMoid oid, size_t size, uint64_t type_num)
 PMEMoid
 pmemobj_tx_zrealloc(PMEMoid oid, size_t size, uint64_t type_num)
 {
-	LOG(3, NULL);
+	LOG(3, "oid.off 0x%" PRIx64 " size %zu type_num %" PRIu64,
+		oid.off, size, type_num);
+
 	struct tx *tx = get_tx();
 
 	ASSERT_IN_TX(tx);
@@ -2050,7 +2097,8 @@ pmemobj_tx_zrealloc(PMEMoid oid, size_t size, uint64_t type_num)
 PMEMoid
 pmemobj_tx_strdup(const char *s, uint64_t type_num)
 {
-	LOG(3, NULL);
+	LOG(3, "s %p type_num %" PRIu64, s, type_num);
+
 	struct tx *tx = get_tx();
 
 	ASSERT_IN_TX(tx);
@@ -2080,7 +2128,8 @@ pmemobj_tx_strdup(const char *s, uint64_t type_num)
 PMEMoid
 pmemobj_tx_wcsdup(const wchar_t *s, uint64_t type_num)
 {
-	LOG(3, NULL);
+	LOG(3, "s %p type_num %" PRIu64, s, type_num);
+
 	struct tx *tx = get_tx();
 
 	ASSERT_IN_TX(tx);
@@ -2110,7 +2159,9 @@ pmemobj_tx_wcsdup(const wchar_t *s, uint64_t type_num)
 int
 pmemobj_tx_free(PMEMoid oid)
 {
-	LOG(3, NULL);
+	LOG(3, "oid.uuid 0x%" PRIx64 " oid.off 0x%" PRIx64,
+		oid.pool_uuid_lo, oid.off);
+
 	struct tx *tx = get_tx();
 
 	ASSERT_IN_TX(tx);
@@ -2147,6 +2198,8 @@ pmemobj_tx_free(PMEMoid oid)
 static void *
 lane_transaction_construct_rt(PMEMobjpool *pop)
 {
+	LOG(3, "pop %p", pop);
+
 	/*
 	 * Lane construction is executed before recovery so it's important
 	 * to keep in mind that any volatile state that could have been
@@ -2161,6 +2214,8 @@ lane_transaction_construct_rt(PMEMobjpool *pop)
 static void
 lane_transaction_destroy_rt(PMEMobjpool *pop, void *rt)
 {
+	LOG(3, "pop %p rt %p", pop, rt);
+
 	struct lane_tx_runtime *lane = rt;
 	tx_destroy_undo_runtime(&lane->undo);
 	Free(lane);
@@ -2172,6 +2227,8 @@ lane_transaction_destroy_rt(PMEMobjpool *pop, void *rt)
 static int
 lane_transaction_recovery(PMEMobjpool *pop, void *data, unsigned length)
 {
+	LOG(3, "pop %p data %p length %u", pop, data, length);
+
 	struct lane_tx_layout *layout = data;
 	int ret = 0;
 	ASSERT(sizeof(*layout) <= length);
@@ -2198,7 +2255,7 @@ lane_transaction_recovery(PMEMobjpool *pop, void *data, unsigned length)
 static int
 lane_transaction_check(PMEMobjpool *pop, void *data, unsigned length)
 {
-	LOG(3, "tx lane %p", data);
+	LOG(3, "pop %p data %p length %u", pop, data, length);
 
 	struct lane_tx_layout *tx_sec = data;
 
@@ -2217,6 +2274,8 @@ lane_transaction_check(PMEMobjpool *pop, void *data, unsigned length)
 static int
 lane_transaction_boot(PMEMobjpool *pop)
 {
+	LOG(3, NULL);
+
 	/* NOP */
 	return 0;
 }
