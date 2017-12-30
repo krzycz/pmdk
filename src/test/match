@@ -34,7 +34,7 @@
 #
 # match -- compare an output file with expected results
 #
-# usage: match [-adoqv] [match-file]...
+# usage: match [-adioqv] [ignore-file] [match-file]...
 #
 # this script compares the output from a test run, stored in a file, with
 # the expected output.  comparison is done line-by-line until either all
@@ -72,6 +72,7 @@
 #
 #	-v	verbose -- show every line as it is being matched
 #
+#	-i      ignore any lines in files that contain these substrings
 
 use strict;
 use Getopt::Std;
@@ -85,7 +86,7 @@ binmode(STDERR, ":utf8");
 my $Me = $0;
 $Me =~ s,.*/,,;
 
-our ($opt_a, $opt_d, $opt_q, $opt_v, $opt_o);
+our ($opt_a, $opt_d, $opt_i, $opt_q, $opt_v, $opt_o);
 
 $SIG{HUP} = $SIG{INT} = $SIG{TERM} = $SIG{__DIE__} = sub {
 	die @_ if $^S;
@@ -97,14 +98,18 @@ sub usage {
 	my $msg = shift;
 
 	warn "$Me: $msg\n" if $msg;
-	warn "Usage: $Me [-adqv] [match-file]...\n";
-	warn "   or: $Me [-dqv] -o output-file match-file...\n";
+	warn "Usage: $Me [-adiqv] [ignore-file] [match-file]...\n";
+	warn "   or: $Me [-diqv] [ignore-file] -o output-file match-file...\n";
 	exit 1;
 }
 
-getopts('adoqv') or usage;
+getopts('adi:oqv') or usage;
 
 my %match2file;
+
+if ($opt_i && $opt_v) {
+	print "\nWill pre-process files to ignore lines in file: \"$opt_i\"\n";
+}
 
 if ($opt_a) {
 	usage("-a and filename arguments are mutually exclusive")
@@ -157,12 +162,47 @@ foreach $mfile (sort keys %match2file) {
 exit 0;
 
 #
+# strip - user can optionally ignore lines from files that contain
+# any number of substrings listed in a file called the ignore-file
+#
+sub strip_it {
+	my ($input) = @_;
+	my @lines_in = split /^/, $input;
+	my $output;
+	my $line_in;
+	my @i_file = split /^/, snarf($opt_i);
+	my $i_line;
+	my $ignore_it = 0;
+
+	foreach $line_in (@lines_in) {
+		my @i_lines = @i_file;
+		foreach $i_line (@i_lines) {
+			chop($i_line);
+			if (index($line_in, $i_line) != -1) {
+				$ignore_it = 1;
+				if ($opt_v) {
+					print "Ignoring: $line_in";
+				}
+			}
+		}
+		if ($ignore_it == 0) {
+			$output .= $line_in;
+		}
+		$ignore_it = 0;
+	}
+	return $output;
+}
+
+#
 # match -- process a match-file, output-file pair
 #
 sub match {
 	my ($mfile, $ofile) = @_;
 	my $pat;
 	my $output = snarf($ofile);
+	if ($opt_i) {
+		$output = strip_it($output);
+	}
 	my $all_lines = $output;
 	my $line_pat = 0;
 	my $line_out = 0;
@@ -171,6 +211,9 @@ sub match {
 	my $opt_found = 0;
 
 	my $fstr = snarf($mfile);
+	if ($opt_i) {
+		$fstr = strip_it($fstr);
+	}
 	for (split /^/, $fstr) {
 		$pat = $_;
 		$line_pat++;
