@@ -1,4 +1,4 @@
-# Copyright 2014-2017, Intel Corporation
+# Copyright 2014-2018, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,7 +35,9 @@
 LIBRARY_NAME = vmem
 LIBRARY_SO_VERSION = 1
 LIBRARY_VERSION = 0.0
-SOURCE = libvmem.c vmem.c\
+
+SOURCE = libvmem.c\
+	vmem.c\
 	$(COMMON)/file.c\
 	$(COMMON)/file_linux.c\
 	$(COMMON)/mmap.c\
@@ -56,4 +58,12 @@ INCS += -I$(JEMALLOC_OBJDIR)/include/jemalloc
 EXTRA_OBJS += $(JEMALLOC_LIB)
 LIBS += -pthread
 
+JEMALLOC_CONFIG += --with-jemalloc-prefix=je_vmem_
+JEMALLOC_CONFIG += --with-private-namespace=je_vmem_
+
+clean: jemalloc-clean
+clobber: jemalloc-clobber
+
 include ../Makefile.inc
+
+$(OBJS): $(JEMALLOC_LIB)

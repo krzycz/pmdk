@@ -1,5 +1,5 @@
 #
-# Copyright 2014-2017, Intel Corporation
+# Copyright 2014-2018, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -46,9 +46,9 @@ DEBUG_RELEASE_TARGETS = common libpmem libvmem libpmemblk libpmemlog libpmemobj\
 RELEASE_TARGETS = tools examples benchmarks
 
 CLEAN_NO_JE_TARGETS = $(ALL_TARGETS) rpmem_common test
-CLEAN_TARGETS = $(CLEAN_NO_JE_TARGETS) jemalloc
+CLEAN_TARGETS = $(CLEAN_NO_JE_TARGETS)
 CLOBBER_NO_JE_TARGETS = $(ALL_TARGETS) rpmem_common test
-CLOBBER_TARGETS = $(CLOBBER_NO_JE_TARGETS) jemalloc
+CLOBBER_TARGETS = $(CLOBBER_NO_JE_TARGETS)
 CSTYLE_TARGETS = $(ALL_TARGETS) test rpmem_common
 INSTALL_TARGETS = $(TARGETS)
 SPARSE_TARGETS = $(ALL_TARGETS) test rpmem_common
@@ -137,7 +137,6 @@ sparse: $(SPARSE_TARGETS:=-sparse)
 
 custom_build = $(DEBUG)$(OBJDIR)
 
-libvmmalloc libvmem libpmemcto: jemalloc
 tools: libpmem libpmemblk libpmemlog libpmemobj libpmemcto
 libpmemblk libpmemlog libpmemobj libpmemcto: libpmem
 benchmarks test tools: common
@@ -171,6 +170,8 @@ endif
 $(RELEASE_TARGETS):
 	$(MAKE) -C $@
 
+jemalloc-test: jemalloc
+
 jemalloc-check: jemalloc-test
 
 test: all jemalloc-test
@@ -182,14 +183,14 @@ check pcheck: test jemalloc-check
 check-remote: test
 	$(MAKE) -C test $@
 
-jemalloc jemalloc-clean jemalloc-clobber jemalloc-test jemalloc-check:
-	$(MAKE) -C jemalloc -f Makefile.libvmem $@
-	$(MAKE) -C jemalloc -f Makefile.libvmmalloc $@
-	$(MAKE) -C jemalloc -f Makefile.libpmemcto $@
+jemalloc jemalloc-test jemalloc-check:
+	$(MAKE) -C libvmem $@
+	$(MAKE) -C libvmmalloc $@
+	$(MAKE) -C libpmemcto $@
 ifeq ($(custom_build),)
-	$(MAKE) -C jemalloc -f Makefile.libvmem $@ DEBUG=1
-	$(MAKE) -C jemalloc -f Makefile.libvmmalloc $@ DEBUG=1
-	$(MAKE) -C jemalloc -f Makefile.libpmemcto $@ DEBUG=1
+	$(MAKE) -C libvmem $@ DEBUG=1
+	$(MAKE) -C libvmmalloc $@ DEBUG=1
+	$(MAKE) -C libpmemcto $@ DEBUG=1
 endif
 
 install-cpp:
@@ -238,9 +239,7 @@ clean: clean-here
 
 clobber: clean-here
 
-.NOTPARALLEL: libvmem libvmmalloc libpmemcto
-
 .PHONY: all install uninstall uninstall-cpp install-cpp clean clobber cstyle\
-	format test check pcheck jemalloc jemalloc-clean jemalloc-test\
-	jemalloc-check cscope $(ALL_TARGETS) pkg-config check-remote clean-here\
-	pkg-cfg-common
+	format test check pcheck cscope $(ALL_TARGETS) pkg-config\
+	check-remote clean-here pkg-cfg-common\
+	jemalloc jemalloc-test jemalloc-check

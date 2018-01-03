@@ -53,13 +53,21 @@ JEMALLOC_CFG_IN_FILES = $(shell find $(JEMALLOC_DIR) -name "*.in")
 JEMALLOC_CFG_GEN_FILES = $(JEMALLOC_CFG_IN_FILES:.in=)
 JEMALLOC_CFG_OUT_FILES = $(patsubst $(JEMALLOC_DIR)/%, $(JEMALLOC_OBJDIR)/%, $(JEMALLOC_CFG_GEN_FILES))
 JEMALLOC_AUTOM4TE_CACHE=autom4te.cache
-JEMALLOC_CONFIG_FILE = $(JEMALLOC_DIR)/jemalloc.cfg
-JEMALLOC_CONFIG = $(shell cat $(JEMALLOC_CONFIG_FILE))
+
+# jemalloc configuration
+JEMALLOC_CONFIG = --without-export
+JEMALLOC_CONFIG += --disable-xmalloc
+JEMALLOC_CONFIG += --disable-munmap
+JEMALLOC_CONFIG += --disable-bsd-malloc-hooks
+ifeq ($(DEBUG),1)
+JEMALLOC_CONFIG += --enable-debug
+endif
 ifeq ($(shell uname -s),FreeBSD)
 ifndef $(CC)
 JEMALLOC_CONFIG += CC=$(CC) # Default to system compiler (not gcc) on FreeBSD
 endif
 endif
+
 CFLAGS_FILTER += -fno-common
 CFLAGS_FILTER += -Wmissing-prototypes
 CFLAGS_FILTER += -Wpointer-arith
@@ -84,6 +92,7 @@ JEMALLOC_CFLAGS=$(filter-out $(CFLAGS_FILTER), $(CFLAGS))
 ifeq ($(shell uname -s),FreeBSD)
 JEMALLOC_CFLAGS += -I/usr/local/include
 endif
+
 JEMALLOC_REMOVE_LDFLAGS_TMP = -Wl,--warn-common
 JEMALLOC_LDFLAGS=$(filter-out $(JEMALLOC_REMOVE_LDFLAGS_TMP), $(LDFLAGS))
 JEMALLOC_CFG_OUT_FILES_FIRST=$(firstword $(JEMALLOC_CFG_OUT_FILES))
@@ -93,7 +102,7 @@ JEMALLOC_CFG_OUT_FILES_REST=$(filter-out $(JEMALLOC_CFG_OUT_FILES_FIRST), $(JEMA
 jemalloc $(JEMALLOC_LIB): $(JEMALLOC_CFG_OUT_FILES)
 	$(MAKE) objroot=$(JEMALLOC_OBJDIR)/ -f $(JEMALLOC_MAKEFILE) -C $(JEMALLOC_DIR) all
 
-$(JEMALLOC_CFG_OUT_FILES_FIRST): $(JEMALLOC_CFG) $(JEMALLOC_CONFIG_FILE)
+$(JEMALLOC_CFG_OUT_FILES_FIRST): $(JEMALLOC_CFG)
 	$(MKDIR) -p $(JEMALLOC_OBJDIR)
 	$(RM) -f $(JEMALLOC_CFG_OUT_FILES)
 	cd $(JEMALLOC_OBJDIR) && \

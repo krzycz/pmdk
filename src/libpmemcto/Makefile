@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2017, Intel Corporation
+# Copyright 2016-2018, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -48,10 +48,17 @@ default: all
 JEMALLOC_PMDKDIR = libpmemcto
 include ../jemalloc/jemalloc.mk
 
-INCS += -I../../libpmemcto
 INCS += -I$(JEMALLOC_DIR)/include/jemalloc
 INCS += -I$(JEMALLOC_OBJDIR)/include/jemalloc
 EXTRA_OBJS += $(JEMALLOC_LIB)
 LIBS += -pthread -lpmem
 
+JEMALLOC_CONFIG += --with-jemalloc-prefix=je_cto_
+JEMALLOC_CONFIG += --with-private-namespace=je_cto_
+
+clean: jemalloc-clean
+clobber: jemalloc-clobber
+
 include ../Makefile.inc
+
+$(OBJS): $(JEMALLOC_LIB)

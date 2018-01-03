@@ -1,4 +1,4 @@
-# Copyright 2014-2017, Intel Corporation
+# Copyright 2014-2018, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -210,11 +210,6 @@ LIB_AR_ALL = $(objdir)/$(LIB_NAME)_all.o
 TARGET_LIBS += $(LIB_AR)
 endif
 
-ifneq ($(EXTRA_TARGETS),)
-EXTRA_TARGETS_CLEAN = $(EXTRA_TARGETS:=-clean)
-EXTRA_TARGETS_CLOBBER = $(EXTRA_TARGETS:=-clobber)
-endif
-
 PMEMLOG_PRIV_OBJ=$(LIB_OUTDIR)/libpmemlog/libpmemlog_unscoped.o
 PMEMBLK_PRIV_OBJ=$(LIB_OUTDIR)/libpmemblk/libpmemblk_unscoped.o
 
@@ -228,7 +223,7 @@ endif
 
 MAKEFILE_DEPS=../Makefile.inc Makefile $(TOP)/src/common.inc
 
-all: $(objdir) $(LIB_OUTDIR) $(EXTRA_TARGETS) $(LIB_AR) $(LIB_SO_SONAME) $(LIB_SO_REAL) $(LIB_SO) $(TMP_HEADERS)
+all: $(objdir) $(LIB_OUTDIR) $(LIB_AR) $(LIB_SO_SONAME) $(LIB_SO_REAL) $(LIB_SO) $(TMP_HEADERS)
 
 $(objdir) $(LIB_OUTDIR):
 	$(MKDIR) -p $@
@@ -272,13 +267,13 @@ ifneq ($(LIBRARY_NAME),)
 	$(foreach f, $(TARGET_LINKS), $(RM) $(LIBS_DESTDIR)/$(notdir $(f)))
 endif
 
-clean: $(EXTRA_TARGETS_CLEAN)
+clean:
 ifneq ($(LIBRARY_NAME),)
 	$(RM) $(OBJS) $(TMP_HEADERS)
 	$(RM) $(LIB_AR_ALL) $(LIB_AR_UNSCOPED)
 endif
 
-clobber: clean $(EXTRA_TARGETS_CLOBBER)
+clobber: clean
 ifneq ($(LIBRARY_NAME),)
 	$(RM) $(LIB_AR) $(LIB_SO_SONAME) $(LIB_SO_REAL) $(LIB_SO)
 	$(RM) -r $(objdir)/.deps
