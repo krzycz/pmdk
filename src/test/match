@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Copyright 2014-2017, Intel Corporation
+# Copyright 2014-2018, Intel Corporation
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 #
 # match -- compare an output file with expected results
 #
-# usage: match [-adioqv] [ignore-file] [match-file]...
+# usage: match [-adioqv] [match-file]...
 #
 # this script compares the output from a test run, stored in a file, with
 # the expected output.  comparison is done line-by-line until either all
@@ -59,6 +59,9 @@
 #	$(OPX)	ends a contiguous list of $(OPT)...$(OPX) lines, at least
 #		one of which must match
 #
+# an optional ".ignore" file may contain the substrings that should be
+# ignored in comparison.
+#
 # arguments are:
 #
 #	-a	find all files of the form "X.match" in the current
@@ -71,8 +74,6 @@
 #	-q	don't print log files on mismatch
 #
 #	-v	verbose -- show every line as it is being matched
-#
-#	-i      ignore any lines in files that contain these substrings
 
 use strict;
 use Getopt::Std;
@@ -86,7 +87,7 @@ binmode(STDERR, ":utf8");
 my $Me = $0;
 $Me =~ s,.*/,,;
 
-our ($opt_a, $opt_d, $opt_i, $opt_q, $opt_v, $opt_o);
+our ($opt_a, $opt_d, $opt_q, $opt_v, $opt_o);
 
 $SIG{HUP} = $SIG{INT} = $SIG{TERM} = $SIG{__DIE__} = sub {
 	die @_ if $^S;
@@ -98,18 +99,14 @@ sub usage {
 	my $msg = shift;
 
 	warn "$Me: $msg\n" if $msg;
-	warn "Usage: $Me [-adiqv] [ignore-file] [match-file]...\n";
-	warn "   or: $Me [-diqv] [ignore-file] -o output-file match-file...\n";
+	warn "Usage: $Me [-adqv] [match-file]...\n";
+	warn "   or: $Me [-dqv] -o output-file match-file...\n";
 	exit 1;
 }
 
-getopts('adi:oqv') or usage;
+getopts('adoqv') or usage;
 
 my %match2file;
-
-if ($opt_i && $opt_v) {
-	print "\nWill pre-process files to ignore lines in file: \"$opt_i\"\n";
-}
 
 if ($opt_a) {
 	usage("-a and filename arguments are mutually exclusive")
@@ -162,15 +159,24 @@ foreach $mfile (sort keys %match2file) {
 exit 0;
 
 #
-# strip - user can optionally ignore lines from files that contain
+# strip_it - user can optionally ignore lines from files that contain
 # any number of substrings listed in a file called the ignore-file
 #
 sub strip_it {
-	my ($input) = @_;
+	my ($ifile, $input) = @_;
+	$ifile =~ s/\.match/\.ignore/;
+
+	# check if .ignore file exists
+	return $input unless open(F, $ifile);
+	close(F);
+
+	print "        using ignore-file \"$ifile\"\n"
+		if $opt_v;
+
 	my @lines_in = split /^/, $input;
 	my $output;
 	my $line_in;
-	my @i_file = split /^/, snarf($opt_i);
+	my @i_file = split /^/, snarf($ifile);
 	my $i_line;
 	my $ignore_it = 0;
 
@@ -200,9 +206,7 @@ sub match {
 	my ($mfile, $ofile) = @_;
 	my $pat;
 	my $output = snarf($ofile);
-	if ($opt_i) {
-		$output = strip_it($output);
-	}
+	$output = strip_it($mfile, $output);
 	my $all_lines = $output;
 	my $line_pat = 0;
 	my $line_out = 0;
@@ -211,9 +215,6 @@ sub match {
 	my $opt_found = 0;
 
 	my $fstr = snarf($mfile);
-	if ($opt_i) {
-		$fstr = strip_it($fstr);
-	}
 	for (split /^/, $fstr) {
 		$pat = $_;
 		$line_pat++;
