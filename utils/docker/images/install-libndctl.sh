@@ -70,6 +70,8 @@ rpmbuild -ba $SPEC
 
 echo "==== install ndctl packages ===="
 rpm -i $RPMDIR/RPMS/x86_64/*.rpm
+rpm -qi ndctl-devel
+rpm -qi daxctl-devel
 
 echo "==== cleanup ===="
 rm -rf $RPMDIR
