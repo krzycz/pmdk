@@ -9,7 +9,6 @@ install:
 configuration:
 - Debug
 - Release
-- Setup
 
 environment:
   solutionname: PMDK.sln
@@ -64,11 +63,14 @@ test_script:
     if ($Env:CONFIGURATION -ne "Setup") {
         cd src/test
         md C:\temp
-        echo "`$Env:NON_PMEM_FS_DIR = `"C:\temp`"" >> testconfig.ps1
-        echo "`$Env:PMEM_FS_DIR = `"C:\temp`"" >> testconfig.ps1
+        echo "`$Local:LONGDIR = `"LoremipsumdolorsitametconsecteturadipiscingelitVivamuslacinianibhattortordictumsollicitudinNullamvariusvestibulumligulaetegestaselitsemperidMaurisultriciesligulaeuipsumtinciduntluctusMorbimaximusvariusdolorid`"" >> testconfig.ps1
+        echo "`$Env:DIRSUFFIX = `"`$Local:LONGDIR\`$Local:LONGDIR\`$Local:LONGDIR\`$Local:LONGDIR`"" >> testconfig.ps1
+        echo "`$Env:NON_PMEM_FS_DIR = `"\\?\C:\temp`"" >> testconfig.ps1
+        echo "`$Env:PMEM_FS_DIR = `"\\?\C:\temp`"" >> testconfig.ps1
         echo "`$Env:PMEM_FS_DIR_FORCE_PMEM = `"1`"" >> testconfig.ps1
         echo "`$Env:UNITTEST_NO_ABORT_MSG = `"1`"" >> testconfig.ps1
         echo "`$Env:TM = `"1`"" >> testconfig.ps1
+        get-content testconfig.ps1
     }
     if ($Env:CONFIGURATION -eq "Debug") {
         ./RUNTESTS.ps1 -b debug -o 4m
@@ -78,9 +80,6 @@ test_script:
     }
 
 artifacts:
-- path: 'src\windows\setup\*.msi'
-  name: PMDK_msi
-
 - path: 'src\x64\*.zip'
   name: PMDK
 
