@@ -236,9 +236,9 @@ fi
 # librpmem & rpmemd
 if [ "${BUILD_RPMEM}" = "y" ]
 then
-	RPMBUILD_OPTS+="--with rpmem "
+	RPMBUILD_OPTS+="--with fabric "
 else
-	RPMBUILD_OPTS+="--without rpmem "
+	RPMBUILD_OPTS+="--without fabric "
 fi
 
 # daxio
@@ -253,19 +253,16 @@ fi
 if [[( -n "${TEST_CONFIG_FILE}") && ( -f "$TEST_CONFIG_FILE" ) ]]
 then
 	echo "Test config file: $TEST_CONFIG_FILE"
-	TEST_CONFIG_VAL=${TEST_CONFIG_FILE}
+	RPMBUILD_OPTS+="--define _testconfig ${TEST_CONFIG_FILE}"
 else
 	echo -e "Test config file $TEST_CONFIG_FILE does not exist.\n"\
 		"Default test config will be used."
-	TEST_CONFIG_VAL="default"
 fi
 
 # run make check or not
-if [ "${BUILD_PACKAGE_CHECK}" = "y" ]
+if [ "${BUILD_PACKAGE_CHECK}" == "n" ]
 then
-	CHECK=1
-else
-	CHECK=0
+	RPMBUILD_OPTS+="--define _skip_check 1"
 fi
 
 tar zcf $PACKAGE_TARBALL $PACKAGE_SOURCE
@@ -273,13 +270,11 @@ tar zcf $PACKAGE_TARBALL $PACKAGE_SOURCE
 # Create directory structure for rpmbuild
 mkdir -v BUILD SPECS
 
-echo "opts: $RPMBUILD_OPTS --define _testconfig ${TEST_CONFIG_VAL} --define _check ${CHECK}"
+echo "opts: $RPMBUILD_OPTS"
 
 rpmbuild --define "_topdir `pwd`"\
 	--define "_rpmdir ${OUT_DIR}"\
 	--define "_srcrpmdir ${OUT_DIR}"\
-	--define "_testconfig ${TEST_CONFIG_VAL}"\
-	--define "_check ${CHECK}"\
 	 -ta $PACKAGE_TARBALL \
 	 $RPMBUILD_OPTS
 
