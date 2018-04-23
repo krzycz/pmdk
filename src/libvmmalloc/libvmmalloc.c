@@ -401,23 +401,47 @@ libvmmalloc_create(const char *dir, size_t size)
 		return NULL;
 	}
 
-	/* silently enforce multiple of page size */
-	size = roundup(size, Pagesize);
+	int is_dev_dax = util_file_is_device_dax(dir);
 
-	Fd = util_tmpfile(dir, "/vmem.XXXXXX", O_EXCL);
-	if (Fd == -1)
-		return NULL;
-
-	if ((errno = os_posix_fallocate(Fd, 0, (os_off_t)size)) != 0) {
-		ERR("!posix_fallocate");
-		(void) os_close(Fd);
-		return NULL;
-	}
+	/* silently enforce multiple of mapping alignment */
+	size = roundup(size, Mmap_align);
 
 	void *addr;
-	if ((addr = util_map(Fd, size, MAP_SHARED, 0, 4 << 20, NULL)) == NULL) {
-		(void) os_close(Fd);
-		return NULL;
+	if (is_dev_dax) {
+		if ((Fd = os_open(dir, O_RDWR)) < 0) {
+			ERR("!open \"%s\"", dir);
+			return NULL;
+		}
+
+		ssize_t size = util_file_get_size(dir);
+		if (size < 0) {
+			LOG(2, "cannot determine file length \"%s\"", dir);
+			(void) os_close(Fd);
+			return NULL;
+		}
+
+		addr = util_map(Fd, (size_t)size, MAP_SHARED, 0, 0, NULL);
+		if (addr == NULL) {
+			LOG(2, "failed to map entire file \"%s\"", dir);
+			(void) os_close(Fd);
+			return NULL;
+		}
+	} else {
+		Fd = util_tmpfile(dir, OS_DIR_SEP_STR "vmem.XXXXXX", O_EXCL);
+		if (Fd == -1)
+			return NULL;
+
+		if ((errno = os_posix_fallocate(Fd, 0, (os_off_t)size)) != 0) {
+			ERR("!posix_fallocate");
+			(void) os_close(Fd);
+			return NULL;
+		}
+
+		void *addr;
+		if ((addr = util_map(Fd, size, MAP_SHARED, 0, 4 << 20, NULL)) == NULL) {
+			(void) os_close(Fd);
+			return NULL;
+		}
 	}
 
 	/* store opaque info at beginning of mapped area */
